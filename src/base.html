@@ -1,0 +1,1004 @@
+<title>United Porte Academy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@500;600;700;800&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: brand header bar, left course rail (drawer on phones), one reading column with prev/next at the foot. */
+:root {
+  --ground: #f6f6f6;
+  --surface: #ffffff;
+  --ink: #131313;
+  --muted: #575757;
+  --line: #e2e2e0;
+  --orange: #f98d37;
+  --orange-ink: #b9580c;
+  --orange-wash: #fff1e5;
+  --good: #2f7d4f;
+  --good-wash: #e7f4ec;
+  --bad: #b3361b;
+  --bad-wash: #fbe9e4;
+  --blue-ink: #24579a;
+  --blue-wash: #e8f0fb;
+  --font-display: "Urbanist", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Onest", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --rail: 288px;
+  --bar: 64px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #141312; --surface: #1d1c1a; --ink: #f2f0ec; --muted: #a8a49d; --line: #33312d;
+    --orange: #f98d37; --orange-ink: #ffb276; --orange-wash: #3a2716;
+    --good: #6cc492; --good-wash: #18301f; --bad: #f08a70; --bad-wash: #3a1d16; --blue-ink: #8fb8ec; --blue-wash: #172536;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #141312; --surface: #1d1c1a; --ink: #f2f0ec; --muted: #a8a49d; --line: #33312d;
+  --orange: #f98d37; --orange-ink: #ffb276; --orange-wash: #3a2716;
+  --good: #6cc492; --good-wash: #18301f; --bad: #f08a70; --bad-wash: #3a1d16; --blue-ink: #8fb8ec; --blue-wash: #172536;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--ground); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.6; }
+a { color: var(--orange-ink); }
+:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; border-radius: 4px; }
+
+/* Top bar */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; height: var(--bar); background: var(--surface); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 16px; padding-inline: 16px; }
+.bar .brand { display: flex; align-items: center; gap: 14px; text-decoration: none; color: var(--ink); min-width: 0; }
+.logo-svg { height: 30px; width: auto; display: block; color: var(--ink); flex: none; }
+.bar .tag { font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); border-left: 1px solid var(--line); padding-left: 14px; white-space: nowrap; }
+.bar .spacer { flex: 1; }
+.bar .progress-mini { font-size: 13px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.menu-btn { display: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; height: 40px; padding: 0 12px; font: 600 14px var(--font-body); cursor: pointer; }
+
+/* Shell */
+.shell { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); min-height: calc(100vh - var(--bar)); }
+.rail { position: sticky; top: calc(var(--bar) + env(safe-area-inset-top, 0px)); align-self: start; height: calc(100vh - var(--bar)); overflow-y: auto; border-right: 1px solid var(--line); background: var(--surface); padding: 16px 12px 32px; }
+.search { width: 100%; height: 40px; border: 1px solid var(--line); background: var(--ground); color: var(--ink); border-radius: 8px; padding: 0 12px; font: 14px var(--font-body); }
+.rail h3 { font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 20px 8px 6px; }
+.rail ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.navlink { display: grid; grid-template-columns: 28px minmax(0,1fr) auto; align-items: center; gap: 8px; padding: 8px; border-radius: 8px; text-decoration: none; color: var(--ink); font-size: 14px; line-height: 1.3; }
+.navlink:hover { background: var(--ground); }
+.navlink[aria-current="page"] { background: var(--orange-wash); color: var(--ink); font-weight: 600; }
+.navlink .num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 600 12px var(--font-mono); border: 1.5px solid var(--line); color: var(--muted); }
+.navlink[aria-current="page"] .num { border-color: var(--orange); color: var(--orange-ink); }
+.navlink.done .num { background: var(--good); border-color: var(--good); color: var(--surface); }
+.navlink .pill { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 1px 7px; white-space: nowrap; }
+.navlink .pill.ready { color: var(--orange-ink); border-color: var(--orange); }
+.rail .home-link { margin-top: 12px; }
+.rail .home-link .num { border: none; font-size: 15px; }
+
+/* Main column */
+main { min-width: 0; padding-block: 40px 80px; padding-inline: 24px; }
+.page { max-width: 760px; margin: 0 auto; }
+.eyebrow { font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--orange-ink); margin: 0 0 8px; }
+h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(32px, 5vw, 46px); line-height: 1.08; letter-spacing: -.02em; margin: 0 0 16px; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1.2; letter-spacing: -.01em; margin: 48px 0 12px; text-wrap: balance; }
+h3 { font-family: var(--font-display); font-weight: 700; font-size: 19px; margin: 24px 0 8px; }
+p { margin: 0 0 14px; max-width: 66ch; }
+.lead { font-size: 18px; color: var(--muted); }
+ul.plain { margin: 0 0 14px; padding-left: 20px; }
+ul.plain li { margin-bottom: 6px; }
+code, .mono { font-family: var(--font-mono); font-size: .88em; background: var(--ground); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+
+.meta { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: var(--muted); margin-bottom: 28px; }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* Objectives box */
+.goals { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; margin: 24px 0; }
+.goals h3 { margin-top: 0; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.goals ul { margin: 0; padding-left: 20px; }
+.goals li { margin-bottom: 6px; }
+
+/* Rule callout */
+.rule { border-left: 4px solid var(--orange); background: var(--orange-wash); border-radius: 0 10px 10px 0; padding: 14px 18px; margin: 18px 0; }
+.rule strong { display: block; font-family: var(--font-display); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--orange-ink); margin-bottom: 4px; }
+.rule p { margin: 0; }
+
+/* Figures */
+.figure { margin: 16px 0 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+.figure figcaption, .plans figcaption { font-size: 13.5px; color: var(--muted); margin-top: 8px; }
+.anat { width: 100%; height: auto; display: block; }
+.anat .floor { stroke: var(--muted); stroke-width: 2; }
+.anat .casing { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+.anat .jamb { fill: var(--ground); stroke: var(--ink); stroke-width: 1.25; }
+.anat .slab { fill: var(--orange-wash); stroke: var(--orange-ink); stroke-width: 1.5; }
+.anat .hw { fill: var(--ink); }
+.anat .lever { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
+.anat .lead line { stroke: var(--muted); stroke-width: 1.25; }
+.anat .lead circle { fill: var(--muted); }
+.anat .lbl { font: 600 16px var(--font-body); fill: var(--ink); }
+.anat .lbl.sm { font-weight: 400; fill: var(--muted); font-size: 14px; }
+.plans { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 16px 0 8px; }
+.plans figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; }
+.plans svg { width: 100%; height: auto; display: block; max-width: 180px; margin: 0 auto; }
+.plans figcaption b { display: block; color: var(--ink); font-family: var(--font-display); font-size: 15px; }
+.plans .wall { fill: var(--muted); }
+.plans .leaf { stroke: var(--orange); stroke-width: 5; stroke-linecap: round; }
+.plans .arc { fill: none; stroke: var(--muted); stroke-width: 1.25; stroke-dasharray: 4 4; }
+.plans .pin { fill: var(--ink); }
+.plans .side { font: 700 11px var(--font-display); letter-spacing: .1em; fill: var(--muted); text-anchor: middle; }
+@media (max-width: 680px) { .plans { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Code box */
+.code { border: 1px solid var(--blue-ink); border-radius: 12px; padding: 14px 18px; margin: 18px 0; background: var(--surface); }
+.code strong { display: block; font-family: var(--font-display); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--blue-ink); margin-bottom: 4px; }
+.code p { margin: 0; }
+.code a { color: var(--blue-ink); }
+
+/* Fun-fact boxes */
+.fact { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: start; border-radius: 12px; padding: 16px 18px; margin: 28px 0; }
+.fact .dots3 { display: grid; grid-template-columns: repeat(3, 6px); gap: 3px; margin-top: 4px; }
+.fact .dots3 i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .85; }
+.fact .dots3 i:nth-child(5) { opacity: 0; }
+.fact b { display: block; font-family: var(--font-display); font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 2px; }
+.fact p { margin: 0; font-size: 15.5px; color: var(--ink); }
+.fact-orange { background: var(--orange-wash); color: var(--orange-ink); }
+.fact-blue { background: var(--blue-wash); color: var(--blue-ink); }
+.fact-green { background: var(--good-wash); color: var(--good); }
+.fact-dark { background: var(--ink); color: var(--orange); }
+.fact-dark p { color: var(--surface); }
+
+/* Tables */
+.tablewrap { overflow-x: auto; margin: 12px 0 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-display); font-weight: 700; font-size: 12.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--ground); }
+tr:last-child td { border-bottom: none; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tag-s { display: inline-block; font-size: 12px; font-weight: 600; border-radius: 99px; padding: 1px 8px; white-space: nowrap; }
+.tag-core { background: var(--orange-wash); color: var(--orange-ink); }
+.tag-side { background: var(--ground); color: var(--muted); border: 1px solid var(--line); }
+
+/* Contact strip */
+.contact { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 16px 0 8px; }
+.contact div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.contact span { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.contact b { font-weight: 600; overflow-wrap: anywhere; }
+.copy { margin-left: 6px; font: 600 12px var(--font-body); color: var(--orange-ink); background: none; border: none; cursor: pointer; padding: 0; }
+
+/* Showroom lists */
+.rooms { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.rooms > div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.rooms h3 { margin-top: 0; font-size: 16px; }
+.rooms ul { margin: 0; padding: 0; list-style: none; font-size: 14.5px; }
+.rooms li { padding: 5px 0; border-bottom: 1px dashed var(--line); display: flex; justify-content: space-between; gap: 10px; }
+.rooms li:last-child { border-bottom: none; }
+.rooms li span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Hands-on checklist */
+.tasks { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 8px; }
+.tasks label { display: flex; gap: 12px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; cursor: pointer; }
+.tasks input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--orange); flex: none; }
+
+/* Quiz */
+.quiz { display: grid; gap: 16px; margin-top: 12px; }
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+.q p.ask { font-weight: 600; margin-bottom: 10px; }
+.q .opts { display: grid; gap: 8px; }
+.q .opt { text-align: left; font: 15px var(--font-body); color: var(--ink); background: var(--ground); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+.q .opt:hover:not([disabled]) { border-color: var(--orange); }
+.q .opt[disabled] { cursor: default; }
+.q .opt.right { background: var(--good-wash); border-color: var(--good); }
+.q .opt.wrong { background: var(--bad-wash); border-color: var(--bad); }
+.q .why { margin: 10px 0 0; font-size: 14.5px; color: var(--muted); }
+.score { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Complete + pager */
+.complete { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 40px; padding: 18px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.btn { font: 600 15px var(--font-body); border-radius: 8px; padding: 11px 18px; cursor: pointer; border: 1px solid transparent; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+.btn-primary { background: var(--orange); color: #1b1006; }
+.btn-primary:hover { filter: brightness(1.05); }
+.btn-ghost { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.btn-done { background: var(--good-wash); color: var(--good); border-color: var(--good); }
+.pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+.pager a { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; text-decoration: none; color: var(--ink); min-width: 0; }
+.pager a:hover { border-color: var(--orange); }
+.pager small { display: block; color: var(--muted); font-size: 12.5px; text-transform: uppercase; letter-spacing: .08em; }
+.pager b { font-family: var(--font-display); font-size: 17px; }
+.pager .next { text-align: right; grid-column: 2; }
+
+/* Home */
+.hero { position: relative; padding: 8px 0 8px; }
+.dots { display: grid; grid-template-columns: repeat(5, 10px); gap: 6px; margin-bottom: 22px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--orange); }
+.dots i.k { background: var(--ink); }
+.phases { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.phase { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; min-width: 0; }
+.phase .when { font-size: 12.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.phase h3 { margin: 2px 0 10px; font-size: 18px; }
+.phase ol { margin: 0 0 12px; padding: 0; list-style: none; font-size: 14px; display: grid; gap: 4px; }
+.phase ol a { color: var(--ink); text-decoration: none; }
+.phase ol a:hover { color: var(--orange-ink); text-decoration: underline; }
+.phase .gate { margin-top: auto; border-top: 1px solid var(--line); padding-top: 10px; font-size: 13px; }
+.phase .gate b { color: var(--orange-ink); display: block; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+.steps { counter-reset: s; list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.steps li { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14.5px; }
+.steps li::before { counter-increment: s; content: counter(s); display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: var(--surface); font: 600 13px var(--font-mono); margin-bottom: 8px; }
+.bigprog { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; margin: 8px 0 4px; }
+.bigprog i { display: block; height: 100%; background: var(--orange); border-radius: 99px; }
+
+/* Placeholder */
+.soon { background: var(--surface); border: 1px dashed var(--muted); border-radius: 12px; padding: 22px; }
+.soon p:last-child { margin-bottom: 0; }
+
+.scrim { display: none; }
+
+@media (max-width: 980px) {
+  .phases { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 860px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .menu-btn { display: inline-flex; align-items: center; }
+  .rail { position: fixed; top: calc(var(--bar) + env(safe-area-inset-top, 0px)); left: 0; bottom: 0; height: auto; width: min(320px, 88vw); z-index: 30; transform: translateX(-100%); transition: transform .2s ease; box-shadow: 0 10px 40px rgba(0,0,0,.18); }
+  body.nav-open .rail { transform: none; }
+  body.nav-open .scrim { display: block; position: fixed; inset: var(--bar) 0 0 0; background: rgba(0,0,0,.35); z-index: 25; }
+  .bar .tag { display: none; }
+  main { padding-inline: 16px; padding-block: 28px 64px; }
+}
+@media (max-width: 520px) {
+  .phases { grid-template-columns: minmax(0, 1fr); }
+  .pager { grid-template-columns: minmax(0, 1fr); }
+  .pager .next { grid-column: 1; }
+  .progress-mini { display: none; }
+  .logo-svg { height: 26px; }
+}
+@media (prefers-reduced-motion: reduce) { .rail { transition: none; } }
+</style>
+
+<header class="bar">
+  <button class="menu-btn" id="menuBtn" aria-controls="rail" aria-expanded="false">Modules</button>
+  <a class="brand" href="#home" aria-label="United Porte Academy home">
+    <svg class="logo-svg" viewBox="0 0 203 40" role="img" aria-label="United Porte" xmlns="http://www.w3.org/2000/svg"><g fill="#F98D37"><circle cx="3.2" cy="3.2" r="3.2"/><circle cx="11.3" cy="3.2" r="3.2"/><circle cx="19.4" cy="3.2" r="3.2"/><circle cx="27.5" cy="3.2" r="3.2"/><circle cx="35.8" cy="3.2" r="3.2"/><circle cx="3.2" cy="11.4" r="3.2"/><circle cx="35.8" cy="11.4" r="3.2"/><circle cx="3.2" cy="19.4" r="3.2"/><circle cx="19.4" cy="19.4" r="3.2"/><circle cx="35.8" cy="19.4" r="3.2"/><circle cx="3.2" cy="27.6" r="3.2"/><circle cx="19.4" cy="27.6" r="3.2"/><circle cx="35.8" cy="27.6" r="3.2"/><circle cx="3.2" cy="35.8" r="3.2"/><circle cx="19.4" cy="35.8" r="3.2"/><circle cx="35.8" cy="35.8" r="3.2"/></g><g fill="currentColor"><circle cx="11.3" cy="11.4" r="3.2"/><circle cx="19.4" cy="11.4" r="3.2"/><circle cx="27.5" cy="11.4" r="3.2"/><circle cx="11.3" cy="19.4" r="3.2"/><circle cx="27.5" cy="19.4" r="3.2"/><circle cx="11.3" cy="27.7" r="3.2"/><circle cx="27.5" cy="27.7" r="3.2"/></g><g transform="translate(-683 -274)"><path fill="#F98D37" d="M732 285.1V274.5H736.1V285.1C736.1 289.4 736.8 290.6 740.1 290.6C743.2 290.6 743.9 289.1 743.9 285.1V274.5H748V285.2C748 291.5 746.4 294.1 740.2 294.1C733.9 294.1 732 291.9 732 285.1ZM758.6 282.7C757.5 282.7 756.3 283.2 755 284.2V293.7H751V280H754.2L754.5 281.8C756.5 280.3 758.6 279.5 760.5 279.5C762.8 279.5 764.3 280.7 764.3 283.4V293.6H760.3V284.4C760.4 283.2 759.8 282.7 758.6 282.7ZM766.9 274.4H771.2V278.1H766.9V274.4ZM767.1 280H771.1V293.7H767.1V280ZM775.5 289.6V282.9H773.1V280.1L775.5 280V276.1H779.5V279.9H783.1V282.9H779.5V289.2C779.5 290.8 780.3 291.2 781.5 291.2C782.1 291.2 782.9 291.2 783.7 291.1L783.9 293.6C783 293.8 781.6 293.9 780.4 293.9C777.9 294.1 775.5 293.2 775.5 289.6ZM785.1 286.8C785.1 281.2 787.1 279.5 791.8 279.5C796 279.5 797.9 281.1 797.9 284.8C797.9 285.8 797.8 287.1 797.7 287.9H789.2C789.4 290.5 790.2 291.4 792.5 291.4C794 291.4 795.6 291 796.7 290.7L797.2 293.3C796 293.7 794.5 294.1 792 294.1C786.7 294.1 785.1 292.2 785.1 286.8ZM794.6 285.8V285.2C794.6 283.3 793.9 282.4 792.1 282.4C790.3 282.4 789.3 283 789.2 285.8H794.6ZM800 286.5C800 281.2 801.6 279.5 805.3 279.5C806.7 279.5 807.9 279.9 809.6 280.7V274H813.6V293.6H810.4L810.1 291.5C808 293.4 806.8 294 805.3 294C801.1 294.1 800 292.2 800 286.5ZM806.8 290.8C807.7 290.8 808.3 290.4 809.7 289.1V283.2C808.3 282.5 807.7 282.4 806.9 282.4C804.9 282.4 804.1 283.3 804.1 286.3C804 289.8 804.6 290.8 806.8 290.8Z"/><path fill="currentColor" d="M822.1 274.9H828.9C833.3 274.9 834.9 276.7 834.9 280.6C834.9 284.1 833.2 286.2 828.9 286.2C826.5 286.2 825.2 286.1 823.9 286V293.2H822.2V274.9H822.1ZM828.6 284.6C832 284.6 833.1 283.2 833.1 280.5C833.1 277.5 832 276.3 828.6 276.3H823.9V284.3C825 284.6 826.3 284.6 828.6 284.6ZM837.7 286.3C837.7 281.3 839.6 279.6 843.8 279.6C847.7 279.6 849.8 281.4 849.8 286.3C849.8 291.2 848.6 293.5 843.8 293.5C839 293.6 837.7 291.8 837.7 286.3ZM843.7 292.2C847 292.2 847.9 290.7 847.9 286.4C847.9 282.4 846.4 281 843.7 281C840.7 281 839.4 282.3 839.4 286.3C839.5 290.9 840.3 292.2 843.7 292.2ZM853.5 280.1H855L855.2 282.4C857.6 280.4 858.9 279.7 860.7 279.7C861 279.7 861.3 279.7 861.6 279.8L861.4 281.2C861.1 281.1 860.8 281.1 860.5 281.1C858.9 281.1 857.7 281.8 855.5 283.7V293.1H853.8V280.1H853.5ZM865.4 289.3V281.5H863.1V280.3L864.9 280.2H865.4V276.6H867.3V280.2H871.7V281.5H867.3V289.2C867.3 291.7 868.5 292.3 870.2 292.3C870.9 292.3 871.7 292.3 872.4 292.2L872.6 293.3C871.9 293.4 870.7 293.5 869.9 293.5C867.4 293.6 865.4 292.7 865.4 289.3ZM874.5 286.4C874.5 281.3 876.4 279.6 880.4 279.6C884.1 279.6 885.7 281.3 885.7 284.7C885.7 285.4 885.6 286.3 885.6 286.9H876.4C876.5 291 877.4 292.3 880.6 292.3C882.3 292.3 883.5 292 884.5 291.7L884.8 293C883.7 293.3 882.6 293.6 880.5 293.6C875.9 293.6 874.5 291.8 874.5 286.4ZM884 285.8C884 285.5 884 285.2 884 284.8C884 282.5 883.1 281.1 880.4 281.1C877.7 281.1 876.4 282.2 876.3 285.8H884Z"/><path fill="currentColor" d="M694.3 313C696.1 313 697.5 311.6 697.5 309.8C697.5 308.1 696.1 306.7 694.3 306.7C692.5 306.7 691.1 308.1 691.1 309.8C691.1 311.6 692.5 313 694.3 313ZM710.5 313C712.3 313 713.7 311.6 713.7 309.8C713.7 308.1 712.3 306.7 710.5 306.7C708.7 306.7 707.3 308.1 707.3 309.8C707.3 311.6 708.7 313 710.5 313ZM735.5 312.5C732.8 312.5 732 311.3 732 308.2C732 305.1 733.1 304.1 735.5 304.1C736.4 304.1 737.1 304.2 737.7 304.4L737.6 305.4C736.9 305.3 736.3 305.2 735.5 305.2C734 305.2 733.4 305.9 733.4 308.1C733.4 310.6 733.8 311.3 735.5 311.3C736.5 311.3 737 311.3 737.7 311.2L737.8 312.1C737.2 312.3 736.5 312.5 735.5 312.5ZM745.6 312.3V308.7H741.9V312.3H740.7V304.3H741.9V307.6H745.6V304.3H746.9V312.3H745.6ZM753.5 312.5C750.7 312.5 749.9 311.3 749.9 308.1C749.9 305.1 751 304.1 753.5 304.1C755.6 304.1 756.9 305.2 756.9 308.1C756.9 311.1 756.2 312.5 753.5 312.5ZM751.3 308.1C751.3 310.6 751.7 311.3 753.4 311.3C755.1 311.3 755.5 310.4 755.5 308.2C755.5 306 754.8 305.2 753.4 305.2C751.9 305.2 751.3 305.9 751.3 308.1ZM763.3 312.5C760.6 312.5 759.8 311.3 759.8 308.1C759.8 305.1 760.9 304.1 763.3 304.1C765.5 304.1 766.7 305.2 766.7 308.1C766.7 311.1 766 312.5 763.3 312.5ZM761.2 308.1C761.2 310.6 761.6 311.3 763.3 311.3C765 311.3 765.4 310.4 765.4 308.2C765.4 306 764.7 305.2 763.3 305.2C761.7 305.2 761.2 305.9 761.2 308.1ZM772.7 312.5C771.9 312.5 770.5 312.3 769.4 312.1L769.6 311.1C770.7 311.3 771.8 311.3 772.4 311.3C773.3 311.3 774 311.1 774 310.2C774 309.5 773.6 309.2 773 309L771 308.5C770.1 308.2 769.6 307.7 769.6 306.5C769.6 304.5 770.9 304.1 772.2 304.1C773 304.1 774.1 304.2 774.9 304.4L774.8 305.4C774.2 305.3 773.1 305.2 772.6 305.2C771.6 305.2 771 305.5 771 306.4C771 307 771.2 307.2 771.8 307.4L773.6 307.9C774.6 308.2 775.4 308.8 775.4 310.2C775.4 311.9 774.1 312.5 772.7 312.5ZM778.3 312.3V304.3H783.5V305.4H779.6V307.6H783.1V308.6H779.6V311.2H783.6V312.3H778.3ZM786.5 314L786.9 312.3H786.3V310.6H787.7V312.3L787.3 314H786.5ZM798.4 312.5C797.4 312.5 796 312.4 795.1 312.2V304.3H798.5C800.2 304.3 800.8 304.9 800.8 306.3C800.8 307.3 800.4 307.9 799.5 308.1C800.7 308.3 801.1 309.1 801.1 310.2C801.1 311.7 800.4 312.5 798.4 312.5ZM796.4 311.3C796.9 311.4 797.3 311.4 798.1 311.4C799.4 311.4 799.8 310.9 799.8 310C799.8 309 799.4 308.6 798.2 308.6H796.4V311.3ZM796.4 307.8H798.1C799.1 307.8 799.5 307.3 799.5 306.5C799.5 305.7 799.2 305.3 798.1 305.3H796.4V307.8ZM807.2 312.5C804.7 312.5 804 311.5 804 308.8V304.3H805.3V308.8C805.3 310.7 805.6 311.3 807.2 311.3C808.7 311.3 809 310.6 809 308.8V304.3H810.3V308.8C810.3 311.4 809.7 312.5 807.2 312.5ZM815.9 312.3V309.7L813 304.3H814.4L816.5 308.5L818.7 304.3H820.1L817.2 309.6V312.3H815.9ZM829.4 304C829.8 304 830.1 304.1 830.4 304.2C830.7 304.4 830.9 304.6 831.1 304.8C831.2 305.1 831.3 305.4 831.3 305.8C831.3 306.2 831.1 306.6 830.8 307C830.5 307.3 830.2 307.6 829.7 307.9L831.9 310C832 309.8 832.2 309.5 832.3 309.2C832.4 308.9 832.6 308.6 832.6 308.2H833.6C833.5 308.7 833.4 309.1 833.2 309.6C833 310 832.8 310.3 832.5 310.6L834.1 312.3H832.8L831.8 311.3C831.6 311.5 831.5 311.6 831.3 311.8C831.1 311.9 830.9 312 830.7 312.1C830.4 312.2 830.2 312.2 829.9 312.3C829.7 312.4 829.4 312.4 829.1 312.4C828.6 312.4 828.1 312.3 827.7 312.1C827.4 312 827.1 311.7 826.9 311.4C826.7 311 826.6 310.6 826.6 310.1C826.6 309.8 826.6 309.4 826.8 309.1C826.9 308.9 827.1 308.6 827.4 308.4C827.6 308.2 827.9 308 828.3 307.8C828.1 307.6 828 307.4 827.8 307.2C827.7 307 827.6 306.8 827.5 306.5C827.4 306.3 827.3 306.1 827.3 305.8C827.3 305.4 827.4 305.1 827.6 304.8C827.7 304.6 828 304.4 828.3 304.2C828.6 304.1 828.9 304 829.4 304ZM828.9 308.4C828.6 308.5 828.4 308.7 828.2 308.9C828 309 827.9 309.2 827.8 309.4C827.7 309.6 827.6 309.8 827.6 310.1C827.6 310.5 827.7 310.9 828 311.1C828.3 311.4 828.7 311.5 829.1 311.5C829.6 311.5 830 311.4 830.3 311.3C830.7 311.1 831 310.9 831.2 310.7L828.9 308.4ZM829.3 304.8C829 304.8 828.8 304.9 828.6 305.1C828.4 305.2 828.3 305.5 828.3 305.8C828.3 306 828.3 306.3 828.5 306.5C828.6 306.8 828.8 307 829.1 307.3C829.5 307 829.9 306.8 830 306.6C830.2 306.3 830.3 306.1 830.3 305.8C830.3 305.5 830.2 305.3 830.1 305.1C829.9 304.9 829.6 304.8 829.3 304.8ZM840.8 312.3V304.3H844C845.9 304.3 846.5 305 846.5 306.6C846.5 307.7 846.2 308.4 845.1 308.7C845.6 308.8 846 309.2 846.2 309.8L846.9 312.3H845.5L844.9 310.1C844.7 309.4 844.3 309.2 843.9 309.2H843.5C843 309.2 842.5 309.2 842.1 309.1V312.3H840.8ZM842.1 308.1C842.5 308.2 842.9 308.2 843.7 308.2C844.9 308.2 845.3 307.7 845.3 306.8C845.3 305.7 844.9 305.3 843.7 305.3H842.1V308.1ZM849.8 312.3V304.3H854.9V305.4H851.1V307.6H854.5V308.6H851.1V311.2H855V312.3H849.8ZM858 312.3V304.3H859.6L863.1 310.6V304.3H864.3V312.3H862.7L859.2 305.9V312.3H858ZM867.4 312.3V304.3H872.6V305.4H868.7V307.6H872.2V308.6H868.7V311.2H872.7V312.3H867.4ZM877.2 312.3L875.1 304.3H876.4L878.1 311.2L879.9 304.3H881.2L883 311.2L884.7 304.3H886L883.9 312.3H882.2L880.5 306.6L878.9 312.3H877.2Z"/></g></svg>
+    <span class="tag">Academy</span>
+  </a>
+  <span class="spacer"></span>
+  <span class="progress-mini" id="progMini"></span>
+</header>
+
+<div class="shell">
+  <nav class="rail" id="rail" aria-label="Course modules">
+    <input class="search" id="search" type="search" placeholder="Find a module…" aria-label="Find a module">
+    <ol><li><a class="navlink home-link" href="#home" data-id="home"><span class="num">⌂</span><span>Start here</span><span></span></a></li></ol>
+    <div id="navParts"></div>
+  </nav>
+  <div class="scrim" id="scrim"></div>
+  <main id="main" tabindex="-1"><div class="page" id="page"></div></main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Course map (order = learning order) ---------- */
+  var PARTS = [
+    { name: "Know United Porte", modules: [
+      { id: "m1", t: "Company and team", ready: true },
+      { id: "m2", t: "Door basics and terminology", ready: true, covers: "Parts of a door, what comes in each set, opening types, swing direction and active leaf, sizes and rough opening formulas, cores, finishes and hardware terms." },
+      { id: "m3", t: "Product lines", ready: true, covers: "Interior: swing, pocket, barn, bypass, bi-fold, hidden/frameless, pivot, French, fire-rated. Exterior: aluminium, metal-plastic, patio, sidelites and transoms. Hardware: USA vs Euro handles, magnetic locks, CYL vs WC, hinges. Windows, kitchens, vanities and add-ons, and the list of things we cannot make." },
+      { id: "m4", t: "Measuring and feasibility", ready: true, covers: "Reading the recommended opening off each product page; wall thickness and when an extension is needed; trimming limits by model; custom size vs custom order; the canopy rule for exterior doors." }
+    ]},
+    { name: "Quote and sell", modules: [
+      { id: "m5", t: "Pricing and quoting", covers: "How a quote is built (base + options + services + delivery + tax), promo and dealer discount rules, the tariff and 10% price changes, delivery zones and per-slab freight, installation pricing, discount approvals." },
+      { id: "m6", t: "Lead times and expectations", covers: "Stock 3–10 business days, custom orders 3–4 months, windows 12–16 weeks, the California and Arizona delivery delays, and why we never promise route dates." },
+      { id: "m7", t: "Customers and channels", covers: "Homeowners, contractors, builders, designers and dealers: what each one needs, how they find us, and how to serve them; commercial and government bids." },
+      { id: "m8", t: "Selling skills", covers: "The showroom walk-through, discovery questions, samples and the AI room preview, common objections, and follow-up emails." }
+    ]},
+    { name: "Process orders", modules: [
+      { id: "m9", t: "Order entry in 1C", covers: "Invoices and sales schemes; work codes C2, C3 and C7; cut instructions in the works comments (slab size only, per door); reservations; the tax recalculation trap; why every invoice needs a phone number." },
+      { id: "m10", t: "Payment, credit and fraud", covers: "Deposits, dealer credit control, defending chargebacks, and screening international and freight-forwarder orders." },
+      { id: "m11", t: "Delivery, pick-up and receiving", covers: "Curbside freight vs parcel, pick-up appointments, certificates of insurance, and the 48-hour inspection rule." }
+    ]},
+    { name: "After the sale", modules: [
+      { id: "m12", t: "Returns, exchanges and claims", covers: "The 30-day window, restocking fees, non-returnable items, exchange paperwork and the same-price rule, photo and video evidence, touch-up before replacement, first-line troubleshooting." },
+      { id: "m13", t: "Warranty", covers: "Two years on doors; one year on finishes, vanities and electric locks; the exclusions; how to file a claim." },
+      { id: "m14", t: "Dealer program", covers: "Dealer terms and discount levels, trademark rules, opening an account, and handling dealer escalations." }
+    ]}
+  ];
+  var FLAT = [];
+  PARTS.forEach(function (p, pi) { p.modules.forEach(function (m) { m.part = pi; m.n = FLAT.length + 1; FLAT.push(m); }); });
+  var BYID = {}; FLAT.forEach(function (m) { BYID[m.id] = m; });
+
+  /* ---------- Per-viewer progress (convenience only) ---------- */
+  var store = { done: {}, tasks: {} };
+  try { var raw = localStorage.getItem("upa-progress"); if (raw) store = Object.assign(store, JSON.parse(raw)); } catch (e) {}
+  function save() { try { localStorage.setItem("upa-progress", JSON.stringify(store)); } catch (e) {} }
+
+  /* ---------- Helpers ---------- */
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function doneCount() { return FLAT.filter(function (m) { return store.done[m.id]; }).length; }
+
+  /* ---------- Nav ---------- */
+  function renderNav(current) {
+    var q = (document.getElementById("search").value || "").trim().toLowerCase();
+    var html = "";
+    PARTS.forEach(function (p, pi) {
+      var items = p.modules.filter(function (m) { return !q || (m.t + " " + (m.covers || "")).toLowerCase().indexOf(q) > -1; });
+      if (!items.length) return;
+      html += "<h3>Part " + "ABCD"[pi] + " · " + esc(p.name) + "</h3><ol>";
+      items.forEach(function (m) {
+        var cls = "navlink" + (store.done[m.id] ? " done" : "");
+        var pill = m.ready ? '<span class="pill ready">Ready</span>' : '<span class="pill">Soon</span>';
+        html += '<li><a class="' + cls + '" href="#' + m.id + '" data-id="' + m.id + '"' + (current === m.id ? ' aria-current="page"' : "") + '><span class="num">' + (store.done[m.id] ? "✓" : m.n) + "</span><span>" + esc(m.t) + "</span>" + pill + "</a></li>";
+      });
+      html += "</ol>";
+    });
+    if (!html) html = '<p style="margin:16px 8px;color:var(--muted);font-size:14px">No module matches that search.</p>';
+    document.getElementById("navParts").innerHTML = html;
+    var home = document.querySelector('.home-link');
+    if (current === "home") home.setAttribute("aria-current", "page"); else home.removeAttribute("aria-current");
+    document.getElementById("progMini").textContent = doneCount() + " of " + FLAT.length + " modules complete";
+  }
+
+  /* ---------- Shared page parts ---------- */
+  function pager(id) {
+    var i = id === "home" ? -1 : FLAT.indexOf(BYID[id]);
+    var prev = i <= 0 ? (i === 0 ? { id: "home", t: "Start here", label: "Back" } : null) : { id: FLAT[i - 1].id, t: FLAT[i - 1].n + ". " + FLAT[i - 1].t, label: "Previous" };
+    var next = i + 1 < FLAT.length ? { id: FLAT[i + 1].id, t: FLAT[i + 1].n + ". " + FLAT[i + 1].t, label: "Next" } : null;
+    var h = '<nav class="pager" aria-label="Page navigation">';
+    if (prev) h += '<a href="#' + prev.id + '"><small>← ' + prev.label + "</small><b>" + esc(prev.t) + "</b></a>";
+    if (next) h += '<a class="next" href="#' + next.id + '"><small>' + next.label + " →</small><b>" + esc(next.t) + "</b></a>";
+    return h + "</nav>";
+  }
+  function completeBox(id) {
+    var d = store.done[id];
+    return '<div class="complete"><button class="btn ' + (d ? "btn-done" : "btn-primary") + '" id="markDone" data-id="' + id + '">' + (d ? "✓ Module complete" : "Mark module complete") + '</button><span style="color:var(--muted);font-size:14px">' + (d ? "Saved on this device. Tap again to undo." : "Do the hands-on tasks and the quiz first.") + "</span></div>";
+  }
+  function quiz(qs) {
+    var h = '<div class="quiz" data-total="' + qs.length + '">';
+    qs.forEach(function (q, qi) {
+      h += '<div class="q" data-answer="' + q.a + '"><p class="ask">' + (qi + 1) + ". " + esc(q.q) + '</p><div class="opts">';
+      q.o.forEach(function (o, oi) { h += '<button class="opt" data-i="' + oi + '">' + esc(o) + "</button>"; });
+      h += '</div><p class="why" hidden>' + esc(q.why) + "</p></div>";
+    });
+    return h + '</div><p class="score" id="score" hidden></p>';
+  }
+  function fact(color, text) {
+    return '<aside class="fact fact-' + color + '"><span class="dots3" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><div><b>Did you know?</b><p>' + text + "</p></div></aside>";
+  }
+  function tasks(id, list) {
+    var h = '<ul class="tasks">';
+    list.forEach(function (t, i) {
+      var key = id + "-" + i, on = store.tasks[key];
+      h += '<li><label><input type="checkbox" id="task-' + key + '" data-key="' + key + '"' + (on ? " checked" : "") + "><span>" + t + "</span></label></li>";
+    });
+    return h + "</ul>";
+  }
+
+  /* ---------- Pages ---------- */
+  var PAGES = {};
+
+  PAGES.home = function () {
+    var dc = doneCount(), pct = Math.round(dc / FLAT.length * 100);
+    var phases = PARTS.map(function (p, pi) {
+      return '<div class="phase"><span class="when">Part ' + "ABCD"[pi] + "</span><h3>" + esc(p.name) + "</h3><ol>" +
+        p.modules.map(function (m) { return '<li><a href="#' + m.id + '">' + m.n + ". " + esc(m.t) + "</a></li>"; }).join("") +
+        "</ol></div>";
+    }).join("");
+    return '<section class="hero"><div class="dots" aria-hidden="true">' +
+      "iiiii i...i i.i.i i.i.i i.i.i".split(" ").join("").split("").map(function (c) { return c === "i" ? "<i></i>" : '<i class="k"></i>'; }).join("") +
+      '</div><p class="eyebrow">New team member training</p><h1>Welcome to United Porte</h1>' +
+      '<p class="lead">Fourteen short modules, in the order you need them. Learn the product and how to measure first, then quoting, then order entry, then what happens after the sale.</p>' +
+      '<p style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><a class="btn btn-primary" href="#' + (FLAT.filter(function (m) { return !store.done[m.id]; })[0] || FLAT[0]).id + '">' + (dc ? "Continue where you left off →" : "Start Module 1 →") + '</a></p></section>' +
+      '<h2>Your progress</h2><div class="bigprog" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + pct + '%"></i></div><p style="color:var(--muted);font-size:14px">' + dc + " of " + FLAT.length + " modules complete · progress is saved on this device</p>" +
+      "<h2>The course</h2><p>Go through the modules in order. Product and measuring come before selling, because wrong sizes, wrong swings and bad invoices are the most expensive new-hire mistakes.</p>" +
+      '<div class="phases">' + phases + "</div>" +
+      "<h2>How each module works</h2>" +
+      '<ol class="steps"><li>Read the module. Most take 20–40 minutes.</li><li>Do the hands-on tasks with your trainer.</li><li>Take the short quiz at the end.</li><li>Mark the module complete and move on.</li></ol>' +
+      '<div class="rule"><strong>When the manual and the website disagree</strong><p>Follow the manual. It reflects what the team has confirmed internally, such as quoting custom orders at 3–4 months.</p></div>';
+  };
+
+  PAGES.m1 = function () {
+    return '<p class="eyebrow">Part A · Module 1</p><h1>Company and team</h1>' +
+      '<div class="meta"><span><b>Time</b> about 30 min</span><span><b>Ends with</b> 6-question quiz</span></div>' +
+      '<p class="lead">Who we are, what we sell, the services we offer, where we operate, who our customers are, and who to ask when you are stuck.</p>' +
+      '<div class="goals"><h3>By the end you can</h3><ul>' +
+      "<li>Explain what United Porte sells in two sentences.</li>" +
+      "<li>Name our brands and what each one makes.</li><li>Quote our standard services and know who arranges each installation.</li>" +
+      "<li>Tell a customer which showroom can hand over their order.</li>" +
+      "<li>Recognize our customer types and what each one usually needs.</li>" +
+      "<li>Route a question to the right person on the first try.</li></ul></div>" +
+
+      "<h2>Who we are</h2>" +
+      "<p>United Porte was founded in 2007 in New York and sells European doors in the US. Our products are made by partner factories in Europe and shipped to our warehouse in Bayonne, New Jersey, which is also our headquarters. From there they go to 20 showrooms in 10 states and to customers across the country.</p>" +
+      "<p>Our customers are homeowners, builders, contractors, architects and designers, dealers who resell our doors, and commercial and government buyers.</p>" +
+      '<div class="contact">' +
+      '<div><span>Main line</span><b>+1 (332) 322-2808</b><button class="copy" data-copy="+1 (332) 322-2808">Copy</button></div>' +
+      '<div><span>Sales email</span><b>sales@unitedporte.us</b><button class="copy" data-copy="sales@unitedporte.us">Copy</button></div>' +
+      '<div><span>HQ and warehouse</span><b>8 New Hook Rd, Bayonne, NJ 07002</b></div></div>' +
+
+      fact("orange", "Our doors are built by partner factories in Ukraine, Poland and Spain, then shipped across the ocean to Bayonne.") +
+      "<h2>What we sell</h2>" +
+      "<p>Customers and the website use brand names, so learn which brand makes which line. The last column is the first thing customers usually ask about.</p>" +
+      '<div class="tablewrap"><table><thead><tr><th>Product line</th><th>Brand</th><th>Know this first</th></tr></thead><tbody>' +
+      "<tr><td>Interior doors: swing, pocket, barn, bypass, bi-fold, hidden and frameless</td><td>Sartodoors</td><td>A standard single swing set includes the slab, jamb, trims, hinges and a passage handle.</td></tr>" +
+      "<tr><td>Exterior and entry doors, patio doors, sidelites and transoms</td><td>VDOM</td><td>The door needs a canopy or overhang above it to keep the warranty.</td></tr>" +
+      "<tr><td>Door hardware: handles, locks, hinges, smart locks</td><td>Tupai, DND</td><td>USA handles use a standard latch; Europe handles use a magnetic lock.</td></tr>" +
+      "<tr><td>Windows</td><td>Armalux, VDOM</td><td>Made to order: 12 to 16 weeks.</td></tr>" +
+      "<tr><td>Kitchen cabinets and full kitchen sets</td><td>Wallkitchens</td><td>Cabinets ship flat-packed and are assembled on site.</td></tr>" +
+      "<tr><td>Bathroom vanities, mirrors and storage</td><td>Bath Oasis</td><td>The faucet is included in the set at no extra cost.</td></tr>" +
+      "<tr><td>Baseboards and decorative wall panels</td><td>Armalux, Sartodoors</td><td>Baseboards come in packs of eight 8 ft pieces.</td></tr>" +
+      "</tbody></table></div>" +
+
+      fact("blue", "Our hidden doors can be made up to 108 inches tall. That is 9 feet of door that sits flush with the wall.") +
+      "<h2>Services we offer</h2>" +
+      "<p>Offer these with every sale. Prices are the website prices; confirm on the product page before you quote.</p>" +
+      '<div class="tablewrap"><table><thead><tr><th>Service</th><th>Price</th><th>What it covers</th></tr></thead><tbody>' +
+      '<tr><td>Design consultation</td><td class="num">Free</td><td>Help choosing models, finishes and hardware.</td></tr>' +
+      '<tr><td>In-home measurement</td><td class="num">$75</td><td>A professional measures every opening before the order is placed.</td></tr>' +
+      '<tr><td>Custom size</td><td class="num">$75 / $150</td><td>A stock door cut to size: $75 standard, $150 hidden doors. Ready in 1 to 3 days.</td></tr>' +
+      '<tr><td>Door assembly</td><td class="num">$99</td><td>The door is attached to its frame before delivery, so installation is faster.</td></tr>' +
+      '<tr><td>Door installation</td><td class="num">from $320</td><td>Interior swing door from $320; hidden $350; pocket $400. Exterior priced by job.</td></tr>' +
+      '<tr><td>Window installation</td><td class="num">$400</td><td>Per window.</td></tr>' +
+      '<tr><td>Vanity and kitchen installation</td><td class="num">By quote</td><td>Done by a separate installer. Contact the head of Bath Oasis to arrange it.</td></tr>' +
+      "</tbody></table></div>" +
+      '<div class="rule"><strong>Rule</strong><p>We install doors, windows, vanities and kitchen cabinets. Doors and windows go through our door installers; vanities and kitchens go to a different installer, arranged through the head of Bath Oasis.</p></div>' +
+
+      
+      fact("green", "Customers can upload a photo of their room, and the website's AI preview shows the door they picked installed in it.") +
+      "<h2>Where we operate</h2>" +
+      "<h3>Warehouses</h3>" +
+      "<p>You will see these names in 1C and in warehouse chats.</p>" +
+      '<div class="tablewrap"><table><thead><tr><th>Name in 1C</th><th>Location</th><th>Note</th></tr></thead><tbody>' +
+      "<tr><td><code>HOOK</code></td><td>Bayonne, NJ · 8 New Hook Rd</td><td>Main warehouse and HQ</td></tr>" +
+      "<tr><td><code>Hook 51</code></td><td>Bayonne, NJ</td><td>Newer warehouse next to Hook</td></tr>" +
+      "<tr><td><code>MAIN</code></td><td>Staten Island, NY</td><td>Second East Coast stock location</td></tr>" +
+      "<tr><td>California</td><td>West Coast warehouse</td><td>Serves CA and AZ orders</td></tr><tr><td>Albuquerque</td><td>Albuquerque, NM showroom</td><td>Transfer point for western deliveries</td></tr>" +
+      "</tbody></table></div>" +
+      "<h3>Showrooms</h3>" +
+      "<p>Only pick-up showrooms can hand over orders. Pick-up is by appointment, during that showroom's opening hours.</p>" +
+      '<div class="rooms"><div><h3>Showroom and pick-up (11)</h3><ul>' +
+      "<li><span>Bayonne, NJ</span><span>8 New Hook Rd</span></li>" +
+      "<li><span>Brooklyn, NY</span><span>2747 Coney Island Ave</span></li>" +
+      "<li><span>Staten Island, NY</span><span>3000 Richmond Terrace</span></li>" +
+      "<li><span>Farmingdale, NY</span><span>1290 Broadhollow Rd</span></li>" +
+      "<li><span>North Miami Beach, FL</span><span>16779 N Miami Ave</span></li>" +
+      "<li><span>Huntingdon Valley, PA</span><span>609 County Line Rd</span></li>" +
+      "<li><span>Richmond, TX (Houston)</span><span>6355 S Peek Rd, Unit 600</span></li>" +
+      "<li><span>Carpentersville, IL (Chicago)</span><span>2154 Randall Rd</span></li>" +
+      "<li><span>Albuquerque, NM</span><span>3540 Pan American Fwy NE, Ste C</span></li>" +
+      "<li><span>San Jose, CA</span><span>1724 Junction Ave, Ste D</span></li>" +
+      "<li><span>Scottsdale, AZ</span><span>15475 N Greenway Hayden Loop, Ste B5</span></li>" +
+      '</ul></div><div><h3>Showroom only (8)</h3><ul>' +
+      "<li><span>Boca Raton, FL</span><span>Address on unitedporte.us</span></li>" +
+      "<li><span>Fort Lauderdale, FL</span><span>917-A NE 62nd Ct</span></li>" +
+      "<li><span>Fort Myers, FL</span><span>19451 S Tamiami Trail</span></li>" +
+      "<li><span>River Grove, IL</span><span>2801 N Thatcher Ave</span></li>" +
+      "<li><span>Port Jervis, NY</span><span>84 Front St</span></li>" +
+      "<li><span>Sandy, UT</span><span>834 E 9400 S, #65</span></li>" +
+      "<li><span>San Bruno, CA</span><span>1230 El Camino Real, Ste K</span></li>" +
+      "<li><span>Santa Fe Springs, CA</span><span>12631 Allard St</span></li>" +
+      '</ul><h3 style="margin-top:16px">Opening soon</h3><ul><li><span>Brooklyn, NY (Industry City)</span><span>943 3rd Ave</span></li></ul></div></div>' +
+      '<p style="margin-top:14px">Showroom emails follow the pattern <code>location@unitedporte.us</code>, for example <code>statenisland@unitedporte.us</code>.</p>' +
+
+      fact("dark", "Our aluminium entry doors have an 18 mm thermal break in the frame, which stops cold from passing straight through the metal.") +
+      "<h2>Who our customers are</h2>" +
+      "<p>Most people who walk in or call fit one of these types. Spotting the type early tells you what to ask and what to offer.</p>" +
+      '<div class="tablewrap"><table><thead><tr><th>Customer</th><th>What they usually need</th><th>What to offer</th></tr></thead><tbody>' +
+      "<tr><td>Homeowner</td><td>A few doors for a remodel; help choosing a style; worried about fit and installation.</td><td>Free design consultation, $75 in-home measurement, installation, free finish samples.</td></tr>" +
+      "<tr><td>Contractor or builder</td><td>Many doors at once, fast stock, delivery to the job site, clear specs.</td><td>In-stock models, assembled doors ($99) to save install time, installation quantity discounts from 10 doors.</td></tr>" +
+      "<tr><td>Designer or architect</td><td>A specific look: hidden doors, custom finishes, matching hardware.</td><td>Samples, catalogs, hidden and frameless doors, the 3 to 4 month custom order timeline up front.</td></tr>" +
+      "<tr><td>Dealer</td><td>Resells our doors from their own store.</td><td>Dealer pricing from the office, never from the website. Covered in Module 14.</td></tr>" +
+      "<tr><td>Commercial or government buyer</td><td>Bids, spec sheets, fire-rated doors, large quantities.</td><td>Spec sheets and catalogs; bring the bid to your manager early.</td></tr>" +
+      "</tbody></table></div>" +
+      "<h3>Ways a customer can reach us</h3>" +
+      '<ul class="plain"><li>Visit a showroom, or take the 360° showroom tour online.</li><li>Call the main line or a showroom, or email sales@unitedporte.us.</li><li>Use the chat, video call or Request a Quote buttons on the website.</li><li>Order online, with Affirm financing available at checkout.</li></ul>' +
+
+      "<h2>Who to ask what</h2>" +
+      "<p>Asking the right person first saves a day. Put every request in writing, and put order details in the 1C comment too.</p>" +
+      '<div class="tablewrap"><table><thead><tr><th>Question about</th><th>Ask</th></tr></thead><tbody>' +
+      "<tr><td>Stock, ETAs, production, pricing exceptions, editing a posted invoice</td><td>Andrew (ops)</td></tr>" +
+      "<tr><td>Shipping status and logistics</td><td>Alina</td></tr>" +
+      "<tr><td>Discounts above standard, restocking waivers, dealer escalations</td><td>Inti or Vlad</td></tr>" +
+      "<tr><td>Installation and technical questions</td><td>Anton</td></tr>" +
+      "<tr><td>Cut quality and custom machining</td><td>Roma</td></tr>" +
+      "<tr><td>Smart-lock and fingerprint precuts</td><td>Kuchma</td></tr>" +
+      "<tr><td>Electronic locks, special lock redrilling</td><td>Vova</td></tr>" +
+      "<tr><td>Kitchens, vanities, custom furniture</td><td>Vika</td></tr><tr><td>Installing vanities and kitchen cabinets</td><td>Head of Bath Oasis</td></tr>" +
+      "<tr><td>Payments, credits, refunds, tax fixes</td><td>Irina, Valya, Yevgenya</td></tr>" +
+      "<tr><td>Tax-exemption documents</td><td>Valentina</td></tr>" +
+      "<tr><td>Customer-service negotiations</td><td>Diana</td></tr>" +
+      "<tr><td>Repair visits</td><td>Arthur</td></tr>" +
+      "<tr><td>1C errors</td><td>The 1C chat</td></tr>" +
+      "</tbody></table></div>" +
+
+      "<h2>Hands-on tasks</h2>" +
+      tasks("m1", [
+        "Shadow a showroom salesperson for at least one full customer visit.",
+        "Walk the Bayonne warehouse with a team member and find the <code>HOOK</code> and <code>Hook 51</code> areas.",
+        "Save the main line, sales email and your showroom's email in your phone.",
+        "Open unitedporte.us and find one interior door, one exterior door and one handle.",
+        "Introduce yourself in the sales and ops chats."
+      ]) +
+
+      "<h2>Quiz</h2><p>Pick an answer to see why it is right or wrong.</p>" +
+      quiz([
+        { q: "Which brand makes our interior doors?", o: ["VDOM", "Sartodoors", "Bath Oasis", "Armalux"], a: 1, why: "Sartodoors is the interior door brand. VDOM is exterior doors and some windows." },
+        { q: "A customer wants the vanity they bought installed. What do you do?", o: ["Tell them we do not install vanities", "Book it as a door installation", "Contact the head of Bath Oasis to arrange the installer", "Ask the warehouse"], a: 2, why: "We do install vanities and kitchen cabinets, but through a separate installer arranged by the head of Bath Oasis." },
+        { q: "A homeowner is not sure about their door sizes. What do you offer?", o: ["Guess from photos", "Professional in-home measurement for $75", "Order the standard 36 in. door", "Tell them to come back later"], a: 1, why: "In-home measurement is $75 and prevents the most expensive mistake: the wrong size." },
+        { q: "Which showroom can NOT hand over an order?", o: ["Bayonne, NJ", "Scottsdale, AZ", "Fort Lauderdale, FL", "San Jose, CA"], a: 2, why: "Fort Lauderdale is showroom only. Pick-up happens at the 11 pick-up showrooms." },
+        { q: "What comes with a standard interior single swing door set?", o: ["Only the slab", "Slab, jamb, trims, hinges and a passage handle", "Slab and handle", "Slab and installation"], a: 1, why: "A standard single swing set includes the slab, jamb, trims, hinges and a passage handle. Other configurations have their own sets." },
+        { q: "A dealer wants a discount above their standard level. Who approves it?", o: ["You", "Inti or Vlad", "The warehouse", "The installer"], a: 1, why: "Discounts above standard and restocking waivers need Inti's or Vlad's approval." }
+      ]) +
+      completeBox("m1") + pager("m1");
+  };
+
+  function plan(side, dir) {
+    var L = side === "L", hx = L ? 40 : 120, fx = L ? 120 : 40, lx = L ? 118 : 42, s;
+    if (dir === "in") {
+      s = '<line class="leaf" x1="' + hx + '" y1="95" x2="' + hx + '" y2="15"/>' +
+          '<path class="arc" d="M' + fx + ' 95 A80 80 0 0 ' + (L ? 0 : 1) + ' ' + hx + ' 15"/>';
+    } else {
+      s = '<line class="leaf" x1="' + hx + '" y1="105" x2="' + hx + '" y2="185"/>' +
+          '<path class="arc" d="M' + fx + ' 105 A80 80 0 0 ' + (L ? 1 : 0) + ' ' + hx + ' 185"/>';
+    }
+    return '<svg viewBox="0 0 160 200" role="img" aria-label="' + (L ? "Left " : "Right ") + dir + 'swing, top view">' +
+      '<text class="side" x="' + lx + '" y="22">INSIDE</text><text class="side" x="' + lx + '" y="192">OUTSIDE</text>' +
+      '<rect class="wall" x="4" y="95" width="36" height="10"/><rect class="wall" x="120" y="95" width="36" height="10"/>' +
+      s + '<circle class="pin" cx="' + hx + '" cy="100" r="4.5"/></svg>';
+  }
+
+  PAGES.m2 = function () {
+    return `<p class="eyebrow">Part A · Module 2</p><h1>Door basics and terminology</h1>
+      <div class="meta"><span><b>Time</b> about 40 min</span><span><b>Ends with</b> 9-question quiz</span></div>
+      <p class="lead">The words you will hear every day: the parts of a door, how doors open, which way they swing, how sizes work, and the hardware names.</p>
+      <div class="goals"><h3>By the end you can</h3><ul>
+        <li>Point to the slab, jamb, casing, hinges and striker on any door.</li>
+        <li>Name every opening type we sell and where each one is used.</li>
+        <li>Describe a door's swing the way United Porte writes it.</li>
+        <li>Work out the rough opening for any door from its size.</li>
+        <li>Pick the right handle function: passage, privacy, entry or smart.</li></ul></div>
+
+      <h2>The parts of a door</h2>
+      <p>A door is more than the slab. When a customer says "the door", ask which part they mean.</p>
+      <figure class="figure">
+        <svg class="anat" viewBox="0 0 520 340" role="img" aria-label="Front view of an interior door with its parts labeled">
+          <line class="floor" x1="20" y1="316" x2="500" y2="316"/>
+          <rect class="casing" x="110" y="26" width="200" height="290"/>
+          <rect class="jamb" x="126" y="42" width="168" height="274"/>
+          <rect class="slab" x="132" y="48" width="156" height="268"/>
+          <rect class="hw" x="129" y="70" width="7" height="24" rx="1.5"/>
+          <rect class="hw" x="129" y="250" width="7" height="24" rx="1.5"/>
+          <rect class="hw" x="288" y="180" width="6" height="16" rx="1"/>
+          <line class="lever" x1="268" y1="188" x2="242" y2="188"/>
+          <circle class="hw" cx="268" cy="188" r="8"/>
+          <g class="lead">
+            <line x1="344" y1="46" x2="306" y2="46"/><circle cx="306" cy="46" r="2.5"/>
+            <line x1="344" y1="112" x2="291" y2="112"/><circle cx="291" cy="112" r="2.5"/>
+            <line x1="344" y1="150" x2="274" y2="182"/><circle cx="274" cy="182" r="2.5"/>
+            <line x1="344" y1="210" x2="295" y2="190"/><circle cx="295" cy="190" r="2.5"/>
+            <line x1="344" y1="270" x2="230" y2="270"/><circle cx="230" cy="270" r="2.5"/>
+            <line x1="84" y1="160" x2="130" y2="84"/><circle cx="130" cy="84" r="2.5"/>
+            <line x1="84" y1="168" x2="130" y2="262"/><circle cx="130" cy="262" r="2.5"/>
+          </g>
+          <text class="lbl" x="350" y="51">Casing (trim)</text>
+          <text class="lbl" x="350" y="117">Jamb (frame)</text>
+          <text class="lbl" x="350" y="155">Handle</text>
+          <text class="lbl" x="350" y="215">Striker</text>
+          <text class="lbl" x="350" y="275">Slab (door leaf)</text>
+          <text class="lbl" x="78" y="169" text-anchor="end">Hinges</text>
+          <text class="lbl sm" x="24" y="308">Floor</text>
+        </svg>
+        <figcaption>Front view of a single swing door, as it looks from the room.</figcaption>
+      </figure>
+      <div class="tablewrap"><table><thead><tr><th>Word</th><th>What it means</th></tr></thead><tbody>
+        <tr><td>Slab (leaf)</td><td>The door panel itself, the part that moves.</td></tr>
+        <tr><td>Jamb (frame)</td><td>The frame fixed in the wall opening. The hinges attach the slab to it.</td></tr>
+        <tr><td>Casing (trim)</td><td>The decorative boards around the opening on both sides. They cover the gap between the jamb and the wall.</td></tr>
+        <tr><td>Extension</td><td>A flat board added to the jamb when the wall is thicker than the frame, so the frame covers the whole wall.</td></tr>
+        <tr><td>Striker</td><td>The plate or magnet in the jamb that the latch or magnetic lock catches on.</td></tr>
+        <tr><td>Threshold</td><td>The strip at the bottom of an exterior door frame that seals against weather.</td></tr>
+        <tr><td>Sidelite / transom</td><td>A fixed glass panel beside the door (sidelite) or above it (transom).</td></tr>
+        <tr><td>Astragal</td><td>The strip that covers the gap where the two leaves of a double door meet. It comes in the frame packaging.</td></tr>
+        <tr><td>Flush bolt</td><td>A bolt in the edge of the inactive leaf of a double door that holds it shut at the top and floor. The leaf without flush bolts is the active leaf.</td></tr>
+      </tbody></table></div>
+
+      ${fact("orange", "A 36 x 96 interior door weighs about 75 lbs. An aluminium entry door with its frame weighs about 200 lbs, so always plan two people to move one.")}
+
+      <h2>How doors open</h2>
+      <p>Most of our models come in several opening types. On the website, the same design can be switched between them on the product page.</p>
+      <div class="tablewrap"><table><thead><tr><th>Opening type</th><th>How it works</th><th>Typical use</th></tr></thead><tbody>
+        <tr><td>Swing (single or double)</td><td>Hinged on one side and swings open.</td><td>Bedrooms, bathrooms, offices, entries</td></tr>
+        <tr><td>French</td><td>Swing doors with glass, usually in pairs.</td><td>Living rooms, dining rooms, patios</td></tr>
+        <tr><td>Pocket (single or double)</td><td>Slides into a cavity inside the wall and disappears.</td><td>Tight spaces where a swing door would block the room</td></tr>
+        <tr><td>Barn (single or double)</td><td>Hangs from a rail on the wall and slides across the opening. A double barn is two doors on one rail.</td><td>Pantries, bedrooms, open-plan spaces</td></tr>
+        <tr><td>Barn bypass</td><td>Two barn doors on separate rails that slide past each other.</td><td>Wide openings, closets</td></tr>
+        <tr><td>Bypass</td><td>Two or more doors on tracks inside the opening that slide past each other.</td><td>Closets</td></tr>
+        <tr><td>Bi-fold</td><td>Panels hinged together that fold open in pairs.</td><td>Closets, laundry, pantries</td></tr>
+        <tr><td>Hidden / frameless</td><td>A metal frame set into the wall, so the door sits flush with the wall and has no visible trims.</td><td>Modern interiors, doors meant to disappear</td></tr>
+        <tr><td>Pivot</td><td>Turns on a pivot at the top and bottom instead of side hinges. Usually a custom order.</td><td>Living spaces, very wide openings</td></tr>
+        <tr><td>Patio</td><td>Large glass panels that slide open. Both panels slide.</td><td>Back doors to decks and gardens</td></tr>
+      </tbody></table></div>
+      ${fact("blue", "RAL 9003 is the international paint code behind our White Silk finish. Designers sometimes ask for the RAL code to match walls or cabinets.")}
+
+      <h2>Which way it swings</h2>
+      <p>United Porte names the swing as seen from <b>outside</b>: the side you stand on as you walk in through the door. Left or right is the side the hinges are on. In or out is whether the door opens away from you or toward you.</p>
+      <div class="plans">
+        <figure>${plan("L", "in")}<figcaption><b>Left inswing</b>Hinges left, opens away from you</figcaption></figure>
+        <figure>${plan("R", "in")}<figcaption><b>Right inswing</b>Hinges right, opens away from you</figcaption></figure>
+        <figure>${plan("L", "out")}<figcaption><b>Left outswing</b>Hinges left, opens toward you</figcaption></figure>
+        <figure>${plan("R", "out")}<figcaption><b>Right outswing</b>Hinges right, opens toward you</figcaption></figure>
+      </div>
+      <p style="font-size:14px;color:var(--muted)">Top view. You are standing on the outside, at the bottom of each drawing. The black dot is the hinge.</p>
+      <div class="rule"><strong>Double doors: the active leaf</strong><p>The active leaf is the one <b>without</b> the flush bolts; it is the one you open first. Describe regular double doors the same way as single doors, from outside. <b>Patio doors are the exception:</b> their active leaf is judged from <b>inside</b> the building. Confirm it in writing on every patio door. A mix-up here once meant replacing three patio door sets.</p></div>
+      ${fact("green", "Walk through a right inswing door and look back: from the other side it is a left outswing. Same door, same hinges. Always ask which side the customer is describing it from.")}
+
+      <h2>Sizes</h2>
+      <h3>Sizes we offer</h3>
+      <p>These are the sizes in the website size grid. A few models offer fewer sizes, and any other size is a custom order.</p>
+      <div class="tablewrap"><table><thead><tr><th>Door</th><th>Widths (in.)</th><th>Heights (in.)</th></tr></thead><tbody>
+        <tr><td>Single swing, pocket, barn, hidden</td><td class="num">18, 24, 28, 30, 32, 36, 42</td><td class="num">80, 84, 96</td></tr>
+        <tr><td>Double swing, double pocket, double barn, barn bypass, bypass, bi-fold</td><td class="num">36, 48, 56, 60, 64, 72, 84</td><td class="num">80, 84, 96</td></tr>
+        <tr><td>Double bi-fold</td><td class="num">72, 96</td><td class="num">80, 84, 96</td></tr>
+        <tr><td>Interior pivot</td><td class="num">30, 32, 36, 42</td><td class="num">80, 84, 96, 108</td></tr>
+        <tr><td>Exterior single</td><td class="num">32, 36 (30 on some models)</td><td class="num">80; 96 on some models</td></tr>
+      </tbody></table></div>
+      <div class="rule"><strong>Exterior heights</strong><p>Exterior doors are 80 in., and 96 in. on some models. Taller openings, such as 108, 110 and 112 in., are made by adding a transom above the door, not with a taller door.</p></div>
+      <h3>Thickness</h3>
+      <ul class="plain">
+        <li>Interior door thickness: 1 9/16 in. (40 mm). Frameless doors are 42 mm. We do not make 1 3/4 in. or 2 in. thick doors.</li>
+        <li>Interior frame depth: 4 9/16 in.</li>
+      </ul>
+      <h3>Which width goes where</h3>
+      <div class="tablewrap"><table><thead><tr><th>Room</th><th>Common door width</th></tr></thead><tbody>
+        <tr><td>Closet, linen, pantry</td><td class="num">24 in.</td></tr>
+        <tr><td>Bathroom</td><td class="num">28 to 30 in.</td></tr>
+        <tr><td>Bedroom</td><td class="num">30 to 32 in.</td></tr>
+        <tr><td>Office, laundry</td><td class="num">32 in.</td></tr>
+        <tr><td>Living areas, main entry</td><td class="num">36 in.</td></tr>
+      </tbody></table></div>
+      <div class="code">
+        <strong>What building code asks for</strong>
+        <p>The US residential code (IRC R311.2) requires every home to have at least one side-hinged exterior door with at least <b>32 in. of clear width</b> when open at 90° and <b>78 in. of clear height</b> from the threshold to the stop. A 32 in. door does not give 32 in. of clear width, because the open door and the stop take up space. That is why main entries are usually 36 in. <a href="https://aibd.org/egress-doors/" target="_blank" rel="noopener">Source: AIBD</a></p>
+      </div>
+      <h3>Rough opening formulas</h3>
+      <p>The rough opening is the hole in the wall before the frame goes in. Start from the door size (width W x height H):</p>
+      <div class="tablewrap"><table><thead><tr><th>Opening type</th><th>Rough opening width</th><th>Rough opening height</th></tr></thead><tbody>
+        <tr><td>Swing (single or double)</td><td class="num">W + 2 in.</td><td class="num">H + 1 1/2 in.</td></tr>
+        <tr><td>Hidden</td><td class="num">W + 3 3/4 in.</td><td class="num">H + 2 1/4 in.</td></tr>
+        <tr><td>Pocket</td><td class="num">2 x W + 1 in.</td><td class="num">H + 4 1/2 in.</td></tr>
+        <tr><td>Barn</td><td class="num">W − 2 in.</td><td class="num">H − 1 in.</td></tr>
+        <tr><td>Bypass</td><td class="num">See product page</td><td class="num">H + 2 1/2 in.</td></tr>
+        <tr><td>Bi-fold</td><td class="num">See product page</td><td class="num">H + 2 7/8 in.</td></tr>
+        <tr><td>Exterior</td><td class="num">W + 2 1/2 in.</td><td class="num">H + 2 1/2 in.</td></tr>
+      </tbody></table></div>
+      <p><b>Example:</b> a 30 x 80 in. swing door needs a 32 x 81 1/2 in. rough opening. The same door as a barn door needs only 28 x 79 in., because the barn door overlaps the opening.</p>
+      ${fact("dark", "Our interior doors are 1 9/16 in. (40 mm) thick. That is thicker than the 1 3/8 in. doors common in US home stores.")}
+
+      <h2>Cores and finishes</h2>
+      <h3>What is inside</h3>
+      <div class="tablewrap"><table><thead><tr><th>Core</th><th>What to tell the customer</th></tr></thead><tbody>
+        <tr><td>Honeycomb</td><td>Lighter door. Easier to trim to size.</td></tr>
+        <tr><td>Solid core</td><td>Heavier and quieter, with better sound insulation.</td></tr>
+        <tr><td>Exterior doors</td><td>Insulated with an expanded polystyrene (EPS) core. Call it EPS, not polyurethane; they are different materials.</td></tr>
+      </tbody></table></div>
+      <h3>What is on the surface</h3>
+      <div class="tablewrap"><table><thead><tr><th>Finish</th><th>What it is</th><th>Can the customer change it?</th></tr></thead><tbody>
+        <tr><td>Painted (for example White Silk)</td><td>Factory paint.</td><td>Can be repainted; adhesion is not guaranteed.</td></tr>
+        <tr><td>Eco-veneer (film)</td><td>A factory film with a wood or color look.</td><td>Cannot be stained.</td></tr>
+        <tr><td>Laminate</td><td>A hard, wipeable laminated surface.</td><td>Cannot be repainted.</td></tr>
+        <tr><td>Primed</td><td>A base coat only, ready for paint.</td><td>Must be painted after installation. Primer is not a finish and is not covered by the finish warranty.</td></tr>
+      </tbody></table></div>
+
+      <h2>Hardware words</h2>
+      <h3>Handle function</h3>
+      <div class="tablewrap"><table><thead><tr><th>Function</th><th>What it does</th><th>Typical room</th></tr></thead><tbody>
+        <tr><td>Passage</td><td>Opens and closes, no lock. Comes with a standard set.</td><td>Closets, hallways, living rooms</td></tr>
+        <tr><td>Privacy</td><td>Locks from inside with a turnknob.</td><td>Bathrooms, bedrooms</td></tr>
+        <tr><td>Entry</td><td>Locks with a key.</td><td>Offices, storage, exterior doors</td></tr>
+        <tr><td>Smart</td><td>Fingerprint or keypad. Needs a smart handle.</td><td>Front doors, home offices</td></tr>
+      </tbody></table></div>
+      <h3>Other terms</h3>
+      <div class="tablewrap"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody>
+        <tr><td>USA handle</td><td>Uses a standard spring latch.</td></tr>
+        <tr><td>Europe handle</td><td>Uses a quiet magnetic lock. Needs a magnetic lock and a magnetic striker.</td></tr>
+        <tr><td><code>CYL</code> / <code>WC</code></td><td>The part under the handle. <code>CYL</code> is a key cylinder (entry). <code>WC</code> is a turnknob (privacy).</td></tr>
+        <tr><td>Butterfly hinge</td><td>A visible hinge mounted on the surface. Included with a standard set.</td></tr>
+        <tr><td>Concealed hinge</td><td>Hidden inside the door and frame when closed. An upgrade.</td></tr>
+        <tr><td>Mortise</td><td>The cut-out in the door edge where the lock or latch sits. Doors ship undrilled; this cut is made only when the customer pays for it.</td></tr>
+        <tr><td>Canopy</td><td>A roof or overhang above an exterior door. Required to keep the exterior door warranty.</td></tr>
+      </tbody></table></div>
+
+      <h2>Hands-on tasks</h2>
+      ${tasks("m2", [
+        "In the showroom, point to the slab, jamb, casing, hinges and striker on a display door.",
+        "Open the size grid on one interior product page and switch between the 80, 84 and 96 in. heights.",
+        "Work out the rough opening for a 30 x 80 in. swing door and a 30 x 80 in. pocket door, then check both against the product pages.",
+        "On the website, open one interior door and find the swing option and the Recommended opening."
+      ])}
+
+      <h2>Quiz</h2><p>Pick an answer to see why it is right or wrong.</p>
+      ${quiz([
+        { q: "Which part is fixed in the wall opening and holds the hinges?", o: ["Casing", "Jamb", "Slab", "Threshold"], a: 1, why: "The jamb is the frame in the opening. The casing is the decorative trim around it." },
+        { q: "What rough opening does a 30 x 80 in. single swing door need?", o: ["30 x 80 in.", "32 x 81 1/2 in.", "31 x 81 in.", "28 x 79 in."], a: 1, why: "Swing door: width + 2 in., height + 1 1/2 in. 28 x 79 would be the barn door opening." },
+        { q: "Standing outside, the hinges are on the right and the door opens away from you. What is it?", o: ["Right inswing", "Left inswing", "Right outswing", "Left outswing"], a: 0, why: "Hinges on the right and opening away from you, seen from outside, is a right inswing." },
+        { q: "On a patio door, which side do you judge the active leaf from?", o: ["Outside", "Inside", "Either side", "The hinge side"], a: 1, why: "Patio doors are judged from inside. Regular double doors are described from outside, like single doors." },
+        { q: "On a double door, which leaf is the active one?", o: ["The one with the flush bolts", "The one without the flush bolts", "Always the left one", "Always the right one"], a: 1, why: "The flush bolts hold the inactive leaf shut. The active leaf has none." },
+        { q: "A customer wants a bathroom door that locks from inside. Which function?", o: ["Passage", "Privacy", "Entry", "Dummy"], a: 1, why: "Privacy locks from inside with a turnknob. Entry locks with a key." },
+        { q: "Does a standard door arrive with the handle and lock holes already cut?", o: ["Yes, always", "Only on exterior doors", "No. Doors ship undrilled unless the customer pays for the pre-cut", "Only on white doors"], a: 2, why: "Every door ships undrilled. Cuts are made only when the customer pays for them." },
+        { q: "Under the US residential code, what clear width must the main exit door give?", o: ["28 in.", "30 in.", "32 in.", "36 in."], a: 2, why: "IRC R311.2 asks for at least 32 in. of clear width with the door open at 90°, which is why main entries are usually 36 in. doors." },
+        { q: "A customer buys a primed door. What must you tell them?", o: ["It is ready to install as is", "It must be painted after installation", "It can be stained", "It has a 2-year finish warranty"], a: 1, why: "Primer is only a base coat. The door must be painted, and primer is not covered by the finish warranty." }
+      ])}
+      ${completeBox("m2")}${pager("m2")}`;
+  };
+
+  PAGES.m3 = function () {
+    return `<p class="eyebrow">Part A · Module 3</p><h1>Product lines</h1>
+      <div class="meta"><span><b>Time</b> about 45 min</span><span><b>Ends with</b> 7-question quiz</span></div>
+      <p class="lead">What each product line offers, the upgrades customers ask about, the hardware rules that cause wrong orders, and the things we cannot make.</p>
+      <div class="goals"><h3>By the end you can</h3><ul>
+        <li>Walk a customer through the main upgrades on interior swing, pocket, barn and hidden doors.</li>
+        <li>Explain the difference between our two exterior door types.</li>
+        <li>Match a handle to the right lock and know which handles need extra parts.</li>
+        <li>Describe our windows, kitchens, vanities and add-ons.</li>
+        <li>Say no early when a customer asks for something we do not make.</li></ul></div>
+
+      <h2>Interior doors</h2>
+      <p>Every interior design can be filtered on the website by style, color, glass and room. Learn these words, because customers use them.</p>
+      <div class="tablewrap"><table><thead><tr><th>Filter</th><th>Choices</th></tr></thead><tbody>
+        <tr><td>Style</td><td>Modern, classic, luxury, French, louvered</td></tr>
+        <tr><td>Glass</td><td>Frosted, clear, mirror, or no glass</td></tr>
+        <tr><td>Color</td><td>White, black, grey, brown, green, blue, yellow</td></tr>
+        <tr><td>Core</td><td>MDF, laminate, solid core</td></tr>
+        <tr><td>Room</td><td>Closet, bathroom, bedroom, laundry, pantry, kitchen, office</td></tr>
+      </tbody></table></div>
+
+      <h3>Upgrades by door type</h3>
+      <p>These are the options customers pick on the product page. Prices are on each page; Module 5 covers quoting.</p>
+      <div class="tablewrap"><table><thead><tr><th>Door type</th><th>Options to offer</th></tr></thead><tbody>
+        <tr><td>Swing</td><td>Handle and lock type; concealed hinges instead of butterfly hinges; Flat System frame (trims sit flush with the door on the outswing side); fluted moldings with rosettes or crown moldings; automatic bottom seal; magnetic floor stopper; ventilation slots; custom size.</td></tr>
+        <tr><td>Pocket</td><td>Hardware for a 2x4 or a 2x6 wall; jamb for the wall; soft close; floor guide groove; glass type.</td></tr>
+        <tr><td>Barn</td><td>Rail color (black, silver, gold, white); soft close; floor guide groove; glass type; hidden barn hardware.</td></tr>
+        <tr><td>Hidden</td><td>Frame color (silver or black); mounting plates and mesh; concealed hinge color; magnetic lock color; heights up to 108 in.</td></tr>
+        <tr><td>Bypass</td><td>Two-door or three-door sets; Fourpass hardware for four-door closets.</td></tr>
+        <tr><td>Bi-fold</td><td>Single set or double set.</td></tr>
+      </tbody></table></div>
+      <div class="rule"><strong>Ask before you order</strong><p><b>Double barn</b> is two doors on one rail that open to the sides. <b>Barn bypass</b> is two doors on separate rails that slide past each other. They look alike in photos. Confirm which one the customer means on every barn order.</p></div>
+      <h3>Good to know</h3>
+      <ul class="plain">
+        <li>Pocket hardware for 2x4 and 2x6 walls is not interchangeable. Ask how the wall is framed.</li>
+        <li>Barn doors with hidden ("magic") hardware have no bottom roller, so they are not a good fit for uneven floors.</li>
+        <li>Bypass rails must be fixed into a solid header or blocking. A plain drywall ceiling is not enough.</li>
+        <li>Primed hidden doors must be painted after installation.</li>
+        <li>A hidden door can be ordered with no handle and no cut-out at all.</li>
+        <li>Fire-rated doors are outswing only.</li>
+        <li>We do not sell locks for barn doors.</li>
+      </ul>
+      ${fact("orange", "Our tallest hidden doors are 108 in. That is 9 feet of door, taller than the 8 ft ceilings in many homes, with no trim around it.")}
+
+      <h2>Exterior doors</h2>
+      <p>Our exterior doors are made by VDOM. They come in two constructions. Both can be ordered with sidelites, a transom, or both.</p>
+      <div class="tablewrap"><table><thead><tr><th></th><th>Metal-aluminium</th><th>Metal-plastic (PVC)</th></tr></thead><tbody>
+        <tr><td>Build</td><td>Aluminium frame with an 18 mm thermal break, steel sheets and an insulated EPS core.</td><td>Metal and plastic frame with no wood at all. Will not rust.</td></tr>
+        <tr><td>Best for</td><td>Main entries where looks and security matter most.</td><td>Wet or flood-prone locations.</td></tr>
+        <tr><td>Watch out</td><td>Prices rose with the import tariff on metal doors. Always quote from the current price list.</td><td>About 32 in. of clear opening whatever the listed size. Cannot be made 96 in. tall without a transom.</td></tr>
+      </tbody></table></div>
+      <h3>Sidelites, transoms and patio doors</h3>
+      <ul class="plain">
+        <li>Sidelite options: none, single, double, transom, single with transom, double with transom.</li>
+        <li>Sidelites are fixed glass. We do not offer sidelites that open.</li>
+        <li>A door with two sidelites is handled and priced as a double door.</li>
+        <li>Patio doors: both panels slide.</li>
+        <li>Exterior trims and extensions are a separate product from the door.</li>
+      </ul>
+      <div class="rule"><strong>Two things to say on every exterior sale</strong><p>1. The door needs a canopy or overhang above it to keep the warranty. 2. The climatic drop seal for the bottom of the door is free; offer it.</p></div>
+      <div class="code"><strong>Florida customers</strong><p>We do not have a Florida product approval number yet. Do not call any of our doors "hurricane rated" or quote an approval code.</p></div>
+
+      <h2>Hardware</h2>
+      <div class="tablewrap"><table><thead><tr><th>Handle type</th><th>How it locks</th><th>Example names</th></tr></thead><tbody>
+        <tr><td>USA handles</td><td>Standard spring latch</td><td>New York, London, Milan, Praha, Warsaw, Stockholm</td></tr>
+        <tr><td>Europe handles</td><td>Magnetic lock</td><td>Portland, Kyiv, Metro, Miami, Palermo, Paris, Turin, Verona, Dubai, Berlin, Dallas, Vero, Boston, Rio, Toronto</td></tr>
+        <tr><td>Smart handles</td><td>Fingerprint or keypad</td><td>Monaco (fingerprint)</td></tr>
+      </tbody></table></div>
+      <div class="rule"><strong>Hardware rules that prevent wrong orders</strong><p>Europe handles need a magnetic lock and a magnetic striker. Pulls on pocket and bypass doors are cut through the door, so a four-door closet needs 8 pulls, not 4. Praha is the only modern handle that is not reversible.</p></div>
+      <ul class="plain">
+        <li>Hinges: butterfly hinges come with the set; concealed and self-closing concealed hinges are upgrades.</li>
+        <li>Smart handles are not installed at the factory. The customer or installer fits them, which takes a few minutes.</li>
+        <li>Barn pull handles come in gold, silver and black only.</li>
+      </ul>
+      ${fact("blue", "Our kitchen cabinet hinges are soft-close and rated for 30,000 open-and-close cycles. That is about 8 openings a day for 10 years.")}
+
+      <h2>Windows, kitchens, vanities and add-ons</h2>
+      <div class="tablewrap"><table><thead><tr><th>Line</th><th>Brand</th><th>What to know</th></tr></thead><tbody>
+        <tr><td>Windows</td><td>Armalux, VDOM</td><td>Built to size in a builder on the product page: 32 to 86 in. wide, 32 to 118 in. tall. Choose the profile series, colors, glass (standard, safety or shockproof) and a mosquito net. Made to order in 12 to 16 weeks. Installation available.</td></tr>
+        <tr><td>Kitchens</td><td>Wallkitchens</td><td>Collections: Timeless White, Fashion Gray, Modern Black, Modern Wood. Ships flat-packed. Soft-close hinges, Hettich assembly hardware, E1 low-emission panels.</td></tr>
+        <tr><td>Vanities</td><td>Bath Oasis</td><td>Collections include Luxury, Comfort, Manhattan, Niagara, Elite, Wave, Delux, Woodmix, Ostin, Dune and Edison. Faucet included. Matching mirrors, including LED models.</td></tr>
+        <tr><td>Glass partition walls</td><td>See product page</td><td>Glass walls to divide a room, with or without a swing door.</td></tr>
+        <tr><td>Baseboards</td><td>Armalux</td><td>Packs of eight 8 ft pieces, 3.27 or 4.25 in. tall. White, black matte, light grey oak, Nebraska grey, Nordic white.</td></tr>
+        <tr><td>Wall panels</td><td>Sartodoors</td><td>Decorative wood slat panels.</td></tr>
+      </tbody></table></div>
+      <p>Vanity and kitchen installation goes through the head of Bath Oasis. Door finish samples are free; the customer pays $10 for delivery. PDF catalogs for every line are on <a href="https://unitedporte.us/catalogs" target="_blank" rel="noopener">unitedporte.us/catalogs</a>.</p>
+      ${fact("green", "A pair of our wall cabinet hangers is rated to hold 100 kg, about 220 lbs. Hang them into solid studs or blocking to get that strength.")}
+
+      <h2>What we cannot make</h2>
+      <p>Saying no early saves the customer time and saves you a cancelled order.</p>
+      <div class="tablewrap"><table><thead><tr><th>Request</th><th>What to offer instead</th></tr></thead><tbody>
+        <tr><td>Prehung double doors or prehung hidden doors</td><td>The standard set, assembled on site.</td></tr>
+        <tr><td>Doors 1 3/4 in. or 2 in. thick</td><td>Our 1 9/16 in. (40 mm) doors.</td></tr>
+        <tr><td>Rounded or arched doors</td><td>A rectangular design; arched shapes are not available.</td></tr>
+        <tr><td>Tri-fold doors</td><td>Bi-fold or bypass.</td></tr>
+        <tr><td>Sidelites that open</td><td>A double door.</td></tr>
+        <tr><td>A 96 in. metal-plastic door</td><td>An 80 in. door with a transom, or a metal-aluminium door.</td></tr>
+        <tr><td>Glass sold without the door</td><td>A replacement slab.</td></tr>
+        <tr><td>Cutting or drilling a customer's own doors</td><td>Our doors with the cuts ordered from the factory.</td></tr>
+        <tr><td>Custom handle positions</td><td>Standard handle height.</td></tr>
+        <tr><td>Splitting a trim box or a wood slat pack</td><td>The full pack.</td></tr>
+      </tbody></table></div>
+
+      <h2>Hands-on tasks</h2>
+      ${tasks("m3", [
+        "In the showroom, compare a USA handle and a Europe handle on display doors and open both.",
+        "Find a double barn and a barn bypass on the website and explain the difference to your trainer.",
+        "Open the window builder on a window product page and change the size and glass.",
+        "Open one Bath Oasis vanity page and one Wallkitchens cabinet page and read what is included.",
+        "Download the interior and exterior door catalogs from unitedporte.us/catalogs."
+      ])}
+
+      <h2>Quiz</h2><p>Pick an answer to see why it is right or wrong.</p>
+      ${quiz([
+        { q: "A customer picks a Europe handle. What else must be on the order?", o: ["Nothing", "A magnetic lock and a magnetic striker", "A deadbolt", "Concealed hinges"], a: 1, why: "Europe handles work with a magnetic lock, which needs its own striker in the frame." },
+        { q: "A four-door bypass closet. How many pulls?", o: ["4", "2", "8", "6"], a: 2, why: "Pulls are cut through the door, so each door needs one on each face: 8 for four doors." },
+        { q: "The wall for a pocket door is framed with 2x6 studs. Which hardware?", o: ["2x4 hardware works too", "2x6 pocket hardware", "Barn hardware", "Any pocket kit"], a: 1, why: "2x4 and 2x6 pocket hardware are not interchangeable." },
+        { q: "What is the difference between a double barn and a barn bypass?", o: ["Color only", "Double barn is two doors on one rail; bypass is two doors on separate rails", "Bypass has no handles", "There is none"], a: 1, why: "They look alike, so confirm on every barn order." },
+        { q: "A Florida customer asks if our entry door is hurricane rated. What do you say?", o: ["Yes, all of them", "Yes, with the approval code", "We cannot quote a Florida approval or a hurricane rating", "Only the black ones"], a: 2, why: "We do not have a Florida product approval number yet." },
+        { q: "A customer wants a 96 in. metal-plastic entry door. What do you offer?", o: ["Order it as a custom", "An 80 in. door with a transom, or a metal-aluminium door", "Cut a taller door down", "A 96 in. PVC slab"], a: 1, why: "Metal-plastic doors cannot be made 96 in. tall without a transom." },
+        { q: "Who arranges installation for a vanity?", o: ["Our door installer", "The warehouse", "The head of Bath Oasis", "The customer only"], a: 2, why: "Vanities and kitchens are installed by a separate installer arranged through the head of Bath Oasis." }
+      ])}
+      ${completeBox("m3")}${pager("m3")}`;
+  };
+
+  PAGES.m4 = function () {
+    return `<p class="eyebrow">Part A · Module 4</p><h1>Measuring and feasibility</h1>
+      <div class="meta"><span><b>Time</b> about 40 min</span><span><b>Ends with</b> 7-question quiz</span></div>
+      <p class="lead">How to measure an opening, when a wall needs an extension, how far a door can be cut down, and the checks to run before you take an order.</p>
+      <div class="goals"><h3>By the end you can</h3><ul>
+        <li>Measure an opening and a wall the way we do.</li>
+        <li>Decide when an extension is needed and quote it correctly.</li>
+        <li>Know how much a door can be trimmed, and when it cannot.</li>
+        <li>Explain the difference between a custom size and a custom order.</li>
+        <li>Run the feasibility checklist before every order.</li></ul></div>
+
+      <h2>How to measure</h2>
+      <ol class="steps">
+        <li><b>Width.</b> Measure the opening at the top, middle and bottom. Use the greatest value.</li>
+        <li><b>Height.</b> Measure on the hinge side and on the handle side.</li>
+        <li><b>Wall thickness.</b> Measure from one wall face to the other, through the opening.</li>
+        <li><b>Check.</b> Compare with the rough opening formula from Module 2 and the Recommended opening on the product page.</li>
+      </ol>
+      <p>If the customer is not sure, sell the professional in-home measurement ($75). It costs far less than a door in the wrong size.</p>
+      <ul class="plain">
+        <li>A rough opening can be up to 1/4 in. off without any problem.</li>
+        <li>The gap between the frame and the opening is filled with mounting foam and covered by the trims. Expect about 1 1/2 to 2 in. of allowance in total.</li>
+        <li>The frame itself is about 1/2 in. smaller than the recommended opening.</li>
+      </ul>
+
+      <h2>Wall thickness and extensions</h2>
+      <p>Our interior frame is 4 9/16 in. deep. The trims cover a little more, so most walls need nothing extra.</p>
+      <div class="tablewrap"><table><thead><tr><th>Wall thickness</th><th>What you need</th></tr></thead><tbody>
+        <tr><td class="num">Thinner than 4 9/16 in.</td><td>A standard frame is deeper than the wall. Offer a hidden door, which fits narrow walls, and check with ops before you sell a standard frame.</td></tr>
+        <tr><td class="num">4 9/16 to 5 1/4 in.</td><td>Standard frame and trims. No extension.</td></tr>
+        <tr><td class="num">5 1/2 in. and over</td><td>Extension needed.</td></tr>
+      </tbody></table></div>
+      <div class="rule"><strong>Extensions are two lines</strong><p>An extension needs the material (+$140 on the product page) and the installation labor (+$20 on the installation price list). Put both on the order.</p></div>
+      ${fact("orange", "An extension board is only about 1/2 in. (10 mm) thick. It closes the gap across the whole wall so the frame looks built in.")}
+
+      <h2>Cutting a door to size</h2>
+      <p>The Custom Size service cuts one of our stock doors down to the customer's size. It takes 1 to 3 days.</p>
+      <ul class="plain">
+        <li>Price: $75 for a standard or pocket door, $150 for a hidden door.</li>
+        <li>Maximum size: under 42 x 96 in.</li>
+        <li>Write the exact finished <b>slab</b> size in the order comments, for every door. Never write the opening size.</li>
+        <li>If the door size changes, the frame and trims must change too.</li>
+      </ul>
+      <h3>How far a door can be cut</h3>
+      <div class="tablewrap"><table><thead><tr><th>Cut</th><th>Limit</th></tr></thead><tbody>
+        <tr><td>Height</td><td>At least 2 in. on all interior doors. From 80 in., cutting to 76 or 75 in. is fine; 74 in. can ruin the door.</td></tr>
+        <tr><td>Width, with a lock</td><td>About 3/4 in. at most. Cut more and the lock no longer fits.</td></tr>
+        <tr><td>Width, flush doors without a lock</td><td>Flush models such as 0010, 0020, 0770, 0990 and EGO 5000 can go down to about 9 3/4 in.</td></tr>
+        <tr><td>Glass doors</td><td>Only the glass area changes; the frame rails stay the same. A cut close to the glass can damage the door.</td></tr>
+        <tr><td>Models that cannot be cut</td><td>0040 cannot be cut in height. 8831 cannot go down to 73 in. Panel doors such as 4111 cannot be cut much.</td></tr>
+      </tbody></table></div>
+      <div class="rule"><strong>Before you cut</strong><p>A cut door can never be returned. Cutting also changes how the grain looks, so on a job where doors are seen side by side, cut all of them or none. On gloss doors the cut edge comes out matte.</p></div>
+      ${fact("blue", "Honeycomb-core doors are the easiest to cut, because the core is a light honeycomb with solid wood only around the edges.")}
+
+      <h2>Custom size or custom order?</h2>
+      <div class="tablewrap"><table><thead><tr><th></th><th>Custom size</th><th>Custom order</th></tr></thead><tbody>
+        <tr><td>What it is</td><td>A stock door cut down at our facility</td><td>A door made at the factory to the customer's size or design</td></tr>
+        <tr><td>Lead time</td><td>1 to 3 days</td><td>3 to 4 months</td></tr>
+        <tr><td>Price</td><td>$75 or $150 on top of the door</td><td>Factory quote; the extra cost varies by model</td></tr>
+        <tr><td>Returnable</td><td>No</td><td>No</td></tr>
+      </tbody></table></div>
+      <p>The website can show "1 to 10 business days" on a size that is really a custom order. For any size that is not standard, confirm with ops before you promise a date.</p>
+
+      <h2>Checklist before every order</h2>
+      ${tasks("m4c", [
+        "Swing direction confirmed in writing, and the active leaf on double doors (patio doors are judged from inside).",
+        "Wall thickness measured. Extension added if the wall is 5 1/2 in. or more.",
+        "Rough opening matches the formula and the product page.",
+        "Pocket door: the wall cavity is available and you know if it is 2x4 or 2x6.",
+        "Barn door: there is clear wall beside the opening for the door to slide, and the floor is level for magic hardware.",
+        "Bypass: the ceiling has a solid header for the rail.",
+        "Exterior door: there is a canopy or overhang above it.",
+        "Metal-plastic door: the customer knows the clear opening is about 32 in.",
+        "Custom size: exact slab size written for every door."
+      ])}
+      ${fact("green", "The factory only needs the finished slab size. Writing the opening size instead is a known way to get a door cut wrong.")}
+
+      <h2>Hands-on tasks</h2>
+      ${tasks("m4", [
+        "Measure a showroom opening at the top, middle and bottom, and on both sides for height.",
+        "Measure the wall thickness at that opening and decide if it needs an extension.",
+        "Go on one in-home measurement with an installer.",
+        "Work out the rough opening for a 32 x 84 in. hidden door and check it on the product page.",
+        "Write a practice custom size comment for two doors with your trainer."
+      ])}
+
+      <h2>Quiz</h2><p>Pick an answer to see why it is right or wrong.</p>
+      ${quiz([
+        { q: "At what wall thickness do you need an extension?", o: ["4 in.", "5 in.", "5 1/2 in.", "7 in."], a: 2, why: "Up to about 5 1/4 in. the frame and trims cover the wall. At 5 1/2 in. an extension is needed." },
+        { q: "An extension goes on the order as…", o: ["One line for the material", "One line for labor", "Two lines: material (+$140) and labor (+$20)", "Nothing; it is free"], a: 2, why: "The material is on the product page and the labor is on the installation price list." },
+        { q: "The wall is only 3 1/2 in. thick. What do you offer?", o: ["A standard frame", "A hidden door", "A thicker door", "An extension"], a: 1, why: "A standard frame will not fit. Hidden doors fit narrow walls." },
+        { q: "What size do you write for a custom size cut?", o: ["The opening size", "The exact finished slab size", "The frame size", "The listed size"], a: 1, why: "The factory needs the exact slab size for every door." },
+        { q: "A customer wants an 80 in. door cut to 74 in. What do you say?", o: ["No problem", "That cut can ruin the door; 75 in. is the safe limit", "Only on glass doors", "Order a custom door"], a: 1, why: "Cutting to 76 or 75 in. is fine; 74 in. can ruin the door." },
+        { q: "How long does a custom order take?", o: ["1 to 3 days", "1 to 10 business days", "3 to 4 months", "1 year"], a: 2, why: "Custom orders are made at the factory: quote 3 to 4 months." },
+        { q: "What must every exterior door have above it to keep the warranty?", o: ["A light", "A canopy or overhang", "A transom", "A storm door"], a: 1, why: "Without overhead protection, exterior door damage is not covered." }
+      ])}
+      ${completeBox("m4")}${pager("m4")}`;
+  };
+
+  function placeholder(m) {
+    return '<p class="eyebrow">Part ' + "ABCD"[m.part] + " · Module " + m.n + "</p><h1>" + esc(m.t) + "</h1>" +
+      '<div class="soon"><p><b>This module is being written.</b> It will cover:</p><p>' + esc(m.covers) + "</p></div>" + pager(m.id);
+  }
+
+  /* ---------- Router ---------- */
+  function route() {
+    var id = (location.hash || "#home").slice(1);
+    if (id !== "home" && !BYID[id]) id = "home";
+    var page = document.getElementById("page");
+    page.innerHTML = PAGES[id] ? PAGES[id]() : placeholder(BYID[id]);
+    renderNav(id);
+    document.body.classList.remove("nav-open");
+    document.getElementById("menuBtn").setAttribute("aria-expanded", "false");
+    window.scrollTo(0, 0);
+    document.title = (id === "home" ? "" : BYID[id].n + ". " + BYID[id].t + " · ") + "United Porte Academy";
+  }
+
+  /* ---------- Events ---------- */
+  document.addEventListener("click", function (e) {
+    var opt = e.target.closest(".opt");
+    if (opt) {
+      var q = opt.closest(".q"); if (q.dataset.done) return;
+      var ans = +q.dataset.answer, pick = +opt.dataset.i;
+      q.dataset.done = pick === ans ? "right" : "wrong";
+      q.querySelectorAll(".opt").forEach(function (b, i) { b.disabled = true; if (i === ans) b.classList.add("right"); else if (i === pick) b.classList.add("wrong"); });
+      q.querySelector(".why").hidden = false;
+      var quizEl = q.closest(".quiz"), all = quizEl.querySelectorAll(".q"), answered = quizEl.querySelectorAll(".q[data-done]"), right = quizEl.querySelectorAll('.q[data-done="right"]');
+      if (answered.length === all.length) { var s = document.getElementById("score"); s.hidden = false; s.textContent = "Score: " + right.length + " of " + all.length + (right.length === all.length ? " — well done." : " — review the sections you missed, then try again tomorrow."); }
+      return;
+    }
+    var md = e.target.closest("#markDone");
+    if (md) { var id = md.dataset.id; if (store.done[id]) delete store.done[id]; else store.done[id] = 1; save(); var y = window.scrollY; route(); window.scrollTo(0, y); return; }
+    var cp = e.target.closest(".copy");
+    if (cp) {
+      var txt = cp.dataset.copy;
+      var ok = function () { cp.textContent = "Copied"; setTimeout(function () { cp.textContent = "Copy"; }, 1500); };
+      if (navigator.clipboard) navigator.clipboard.writeText(txt).then(ok, function () { cp.textContent = "Select and copy"; });
+      return;
+    }
+  });
+  document.addEventListener("change", function (e) {
+    if (e.target.matches(".tasks input")) { var k = e.target.dataset.key; if (e.target.checked) store.tasks[k] = 1; else delete store.tasks[k]; save(); }
+  });
+  document.getElementById("search").addEventListener("input", function () { var id = (location.hash || "#home").slice(1); renderNav(BYID[id] ? id : "home"); });
+  document.getElementById("menuBtn").addEventListener("click", function () { var open = document.body.classList.toggle("nav-open"); this.setAttribute("aria-expanded", String(open)); });
+  document.getElementById("scrim").addEventListener("click", function () { document.body.classList.remove("nav-open"); document.getElementById("menuBtn").setAttribute("aria-expanded", "false"); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") document.body.classList.remove("nav-open"); });
+  window.addEventListener("hashchange", route);
+  route();
+})();
+</script>
+

@@ -281,6 +281,9 @@ img { max-width: 100%; }
 .profile label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); min-width: 0; }
 .profile input, .profile select { font: 15px var(--font-body); color: var(--ink); background: var(--ground); border: 1px solid var(--line); border-radius: 8px; height: 42px; padding: 0 10px; width: 100%; }
 .gate .profile { border-color: var(--orange); }
+.signin .row { display: flex; flex-wrap: wrap; gap: 10px; }
+.formerr { color: var(--bad); font-weight: 600; margin: 0 0 12px; }
+.signin input[name=code] { letter-spacing: .3em; font-family: var(--font-mono); font-size: 20px; max-width: 220px; }
 
 /* result card */
 .result { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px; align-items: center; border-radius: 12px; padding: 16px 18px; margin: 12px 0 18px; border: 1.5px solid var(--line); background: var(--surface); }
@@ -359,11 +362,15 @@ img { max-width: 100%; }
 
   /* =====================================================================
      SETTINGS — change these before you publish
-     resultsEmail: where quiz and test results are emailed (via FormSubmit)
+     apiUrl:       the Google Sheet web app URL. When set, trainees sign in with
+                   their email and a code, and progress is saved online.
+                   Leave "" to save progress only in each browser.
+     resultsEmail: used only when apiUrl is "": results emailed via FormSubmit
      passMark:     percent needed to pass a quiz or test
      lockTests:    true = midpoint/final open only after the modules before them
      ===================================================================== */
   var CONFIG = {
+    apiUrl: "",
     resultsEmail: "YOUR-EMAIL@example.com",
     passMark: 80,
     lockTests: true
@@ -402,7 +409,7 @@ img { max-width: 100%; }
     { q: "What comes in a standard interior single swing set?", o: ["Slab only", "Slab, jamb, trims, hinges and a passage handle", "Slab and handle", "Slab and installation"], a: 1, why: "Other configurations each have their own set." },
     { q: "Do doors ship with handle and lock holes already cut?", o: ["Yes", "Only exterior doors", "No, unless the customer pays for the cut", "Only white doors"], a: 2, why: "Every door ships undrilled." },
     { q: "Hinges on the left, door opens toward you, seen from outside. What is it?", o: ["Left inswing", "Left outswing", "Right outswing", "Right inswing"], a: 1, why: "Opening toward you is outswing; hinges left makes it left outswing." },
-    { q: "The active leaf of a double door is judged from…", o: ["Outside", "Inside", "The hinge side", "Either side"], a: 1, why: "Always from inside the building." },
+    { q: "The active leaf of a patio door is judged from…", o: ["Outside", "Inside", "The hinge side", "Either side"], a: 1, why: "Patio doors are judged from inside. Regular double doors are described from outside." },
     { q: "Rough opening for a 32 x 80 in. single swing door?", o: ["32 x 80 in.", "34 x 81 1/2 in.", "33 x 82 in.", "30 x 79 in."], a: 1, why: "Swing: width + 2 in., height + 1 1/2 in." },
     { q: "Which handle needs a magnetic lock and striker?", o: ["USA handle", "Europe handle", "Barn pull", "Any handle"], a: 1, why: "Europe handles use a magnetic lock." },
     { q: "Which pocket hardware for a 2x6 wall?", o: ["2x4 hardware", "2x6 hardware", "Either", "Barn hardware"], a: 1, why: "2x4 and 2x6 hardware are not interchangeable." },
@@ -468,13 +475,72 @@ img { max-width: 100%; }
 
   /* ---------- Saved progress (per browser) ---------- */
   var KEY = "upa-v2";
-  var store = { tasks: {}, profile: null, results: {}, outbox: [] };
+  var store = { tasks: {}, profile: null, results: {}, outbox: [], auth: null };
+  var ONLINE = !!CONFIG.apiUrl;
   try {
     var raw = localStorage.getItem(KEY);
     if (raw) store = Object.assign(store, JSON.parse(raw));
     else { var old = localStorage.getItem("upa-progress"); if (old) { var o = JSON.parse(old); if (o.tasks) store.tasks = o.tasks; } }
   } catch (e) {}
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} if (ONLINE && store.auth) scheduleSync(); }
+
+  /* ---------- Online sign-in and sync (Google Sheet web app) ---------- */
+  function api(action, body) {
+    body = Object.assign({ action: action }, body || {});
+    return fetch(CONFIG.apiUrl, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); })
+      .catch(function () { return { ok: false, error: "network" }; });
+  }
+  function snapshot() { return { profile: store.profile, results: store.results, tasks: store.tasks }; }
+  var syncTimer = null;
+  function scheduleSync() { clearTimeout(syncTimer); syncTimer = setTimeout(syncNow, 1200); }
+  function syncNow() {
+    if (!ONLINE || !store.auth) return Promise.resolve(false);
+    return api("save", { token: store.auth.token, data: snapshot() }).then(function (j) {
+      if (!j.ok && j.error === "signed_out") signedOut();
+      store.unsynced = !j.ok; try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {}
+      return j.ok;
+    });
+  }
+  function merge(data) {
+    if (!data) return;
+    var r = data.results || {};
+    Object.keys(r).forEach(function (id) {
+      var mine = store.results[id];
+      if (!mine || new Date(r[id].date) > new Date(mine.date)) store.results[id] = r[id];
+    });
+    Object.keys(data.tasks || {}).forEach(function (k) { store.tasks[k] = 1; });
+    if (data.profile && data.profile.name) store.profile = data.profile;
+  }
+  function signedOut() {
+    store.auth = null; try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {}
+    toast("Please sign in again."); route();
+  }
+  function ready() { return ONLINE ? !!(store.auth && store.profile && store.profile.name) : !!store.profile; }
+  var SIGN = { step: "email", email: "" };
+  var ERRORS = {
+    bad_email: "That email doesn't look right. Check it and try again.",
+    domain_not_allowed: "Use your company email address.",
+    wait: "A code was just sent. Wait a minute before asking for another.",
+    bad_code: "Enter the 6-digit code from the email.",
+    wrong_code: "That code is not right. Check the email and try again.",
+    expired: "That code has expired. Send a new one.",
+    no_code: "Send yourself a new code first.",
+    too_many_tries: "Too many tries. Send a new code.",
+    network: "Can't reach the server. Check your connection and try again."
+  };
+  function signInBox(intro) {
+    if (SIGN.step === "code") {
+      return '<form class="profile signin" id="codeForm"><p>We sent a 6-digit code to <b>' + esc(SIGN.email) + "</b>. It works for 15 minutes. Check spam if you don't see it.</p>" +
+        '<div class="fields"><label for="si-code">Code<input id="si-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required></label></div>' +
+        '<p class="formerr" id="signErr" hidden></p><div class="row"><button class="btn btn-primary" type="submit">Sign in</button>' +
+        '<button class="btn btn-ghost" type="button" id="resendCode">Send a new code</button><button class="btn btn-ghost" type="button" id="changeEmail">Use a different email</button></div></form>';
+    }
+    return '<form class="profile signin" id="signInForm"><p>' + (intro || "Sign in with your email. Use the same email on any device to pick up where you left off.") + "</p>" +
+      '<div class="fields"><label for="si-email">Work email<input id="si-email" name="email" type="email" autocomplete="email" required value="' + esc(SIGN.email) + '"></label></div>' +
+      '<p class="formerr" id="signErr" hidden></p><button class="btn btn-primary" type="submit">Email me a code</button></form>';
+  }
+  function showErr(code) { var el = document.getElementById("signErr"); if (el) { el.textContent = ERRORS[code] || "Something went wrong (" + code + "). Try again."; el.hidden = false; } }
 
   /* ---------- Helpers ---------- */
   var CUR = "home", QUIZZES = {};
@@ -518,8 +584,21 @@ img { max-width: 100%; }
       body: JSON.stringify(data)
     }).then(function (res) { return res.json(); }).then(function (j) { return String(j.success) === "true"; }).catch(function () { return false; });
   }
+  function apiResult(id) {
+    var d = payloadFor(id, store.results[id]);
+    return { token: store.auth && store.auth.token, profile: store.profile,
+      result: { item: d.Item, score: d.Score, percent: d.Percent, grade: d.Grade, status: d.Result, attempt: d.Attempt, missed: d["Missed questions"] } };
+  }
   function sendResult(id) {
     var r = store.results[id];
+    if (ONLINE) {
+      var body = apiResult(id);
+      return api("result", body).then(function (j) {
+        r.sent = !!j.ok;
+        if (!j.ok) store.outbox.push({ id: id, api: true });
+        save(); refreshSentLabels(); return j.ok;
+      });
+    }
     if (!emailReady()) { r.sent = false; save(); return Promise.resolve(false); }
     var data = payloadFor(id, r);
     return post(data).then(function (ok) {
@@ -530,12 +609,13 @@ img { max-width: 100%; }
     });
   }
   function flushOutbox() {
-    if (!emailReady() || !store.outbox.length) return Promise.resolve(0);
+    if (!store.outbox.length || (ONLINE ? !store.auth : !emailReady())) return Promise.resolve(0);
     var queue = store.outbox.slice(); store.outbox = []; save();
     var sent = 0;
     return queue.reduce(function (pr, item) {
       return pr.then(function () {
-        return post(item.data).then(function (ok) {
+        var send = item.api ? (store.results[item.id] ? api("result", apiResult(item.id)).then(function (j) { return !!j.ok; }) : Promise.resolve(true)) : post(item.data);
+        return send.then(function (ok) {
           if (ok) { sent++; if (store.results[item.id]) store.results[item.id].sent = true; }
           else store.outbox.push(item);
           save();
@@ -544,6 +624,7 @@ img { max-width: 100%; }
     }, Promise.resolve()).then(function () { refreshSentLabels(); return sent; });
   }
   function sentLabel(r) {
+    if (ONLINE) return r.sent ? "Saved to your record and sent to your manager." : "Not saved online yet. It will retry automatically.";
     if (!emailReady()) return "Email results are not set up yet.";
     return r.sent ? "Results emailed to your manager." : "Not emailed yet. It will retry automatically.";
   }
@@ -577,12 +658,17 @@ img { max-width: 100%; }
     var p = store.profile || {};
     return '<form class="profile" id="profileForm">' + (intro ? "<p>" + intro + "</p>" : "") +
       '<div class="fields"><label for="pf-name">Full name<input id="pf-name" name="name" required autocomplete="name" value="' + esc(p.name || "") + '"></label>' +
-      '<label for="pf-email">Your email (optional)<input id="pf-email" name="email" type="email" autocomplete="email" value="' + esc(p.email || "") + '"></label>' +
+      (ONLINE ? "" : '<label for="pf-email">Your email (optional)<input id="pf-email" name="email" type="email" autocomplete="email" value="' + esc(p.email || "") + '"></label>') +
       '<label for="pf-room">Showroom<select id="pf-room" name="showroom">' + SHOWROOMS.map(function (s) { return "<option" + (p.showroom === s ? " selected" : "") + ">" + esc(s) + "</option>"; }).join("") + "</select></label></div>" +
       '<button class="btn btn-primary" type="submit">' + (store.profile ? "Save changes" : "Save and continue") + "</button></form>";
   }
   function profileGate() {
+    if (ONLINE && !store.auth) return '<div class="gate">' + signInBox("Sign in before you take the quiz, so your grade is saved to your record.") + "</div>";
     return '<div class="gate">' + profileForm("Enter your name before you take the quiz, so your grade can be recorded and sent to your manager.") + "</div>";
+  }
+  function startBox() {
+    if (ONLINE && !store.auth) return signInBox();
+    return profileForm(ONLINE ? "Welcome! Tell us your name and showroom. They are added to your record." : "Start by entering your name. It is saved in this browser and added to every result you send.");
   }
 
   /* ---------- Shared page parts ---------- */
@@ -612,7 +698,7 @@ img { max-width: 100%; }
   function quiz(qs) {
     var id = CUR; QUIZZES[id] = qs;
     var intro = "<p>Pick an answer to see why it is right or wrong. Your score counts when you answer the last question. Pass mark: " + CONFIG.passMark + "%.</p>";
-    if (!store.profile) return intro + profileGate();
+    if (!ready()) return intro + profileGate();
     var r = store.results[id];
     return intro + '<div class="quizwrap" data-id="' + id + '">' + (r ? resultCard(id) : '<div class="rslot"></div>') +
       '<div class="quiz"' + (r ? " hidden" : "") + ">" + quizQuestions(qs) + "</div></div>";
@@ -672,29 +758,33 @@ img { max-width: 100%; }
       "iiiii i...i i.i.i i.i.i i.i.i".split(" ").join("").split("").map(function (c) { return c === "i" ? "<i></i>" : '<i class="k"></i>'; }).join("") +
       '</div><p class="eyebrow">New team member training</p><h1>Welcome to United Porte</h1>' +
       '<p class="lead">Fourteen short modules in the order you need them, a midpoint test after Part B and a final test at the end. Your quizzes and tests are graded and your results are sent to your manager.</p>' +
-      (store.profile
-        ? '<p class="who">Signed in as <b>' + esc(store.profile.name) + "</b>" + (store.profile.showroom ? " · " + esc(store.profile.showroom) : "") + ' · <a href="#me">change</a></p>' +
+      (ready()
+        ? '<p class="who">Signed in as <b>' + esc(store.profile.name) + "</b>" + (store.profile.showroom ? " · " + esc(store.profile.showroom) : "") + (ONLINE ? " · " + esc(store.auth.email) : "") + ' · <a href="#me">change</a></p>' +
           '<p style="display:flex;flex-wrap:wrap;gap:10px;margin-top:16px"><a class="btn btn-primary" href="#' + (nextUp ? nextUp.id : "grades") + '">' + (nextUp ? (dc ? "Continue: " : "Start: ") + esc(label(nextUp)) + " →" : "See my grades →") + '</a><a class="btn btn-ghost" href="#grades">My grades</a></p>'
-        : profileForm("Start by entering your name. It is saved in this browser and added to every result you send.")) +
+        : startBox()) +
       "</section>" +
-      '<h2>Your progress</h2><div class="bigprog" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + pct + '%"></i></div><p class="muted-s">' + dc + " of " + MODULES.length + " modules complete" + (store.results.mid ? " · midpoint " + store.results.mid.pct + "%" : "") + (store.results.final ? " · final " + store.results.final.pct + "%" : "") + " · saved in this browser</p>" +
+      '<h2>Your progress</h2><div class="bigprog" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + pct + '%"></i></div><p class="muted-s">' + dc + " of " + MODULES.length + " modules complete" + (store.results.mid ? " · midpoint " + store.results.mid.pct + "%" : "") + (store.results.final ? " · final " + store.results.final.pct + "%" : "") + (ONLINE ? (store.auth ? " · saved to your account" : "") : " · saved in this browser") + "</p>" +
       "<h2>The course</h2><p>Go through the modules in order. Product and measuring come before selling, because wrong sizes, wrong swings and bad invoices are the most expensive mistakes.</p>" +
       '<div class="phases">' + cards + "</div>" +
       "<h2>How it works</h2>" +
-      '<ol class="steps"><li>Read the module and do the hands-on tasks with your trainer.</li><li>Take the quiz at the end. Pass mark is ' + CONFIG.passMark + "%. You can retake it.</li><li>After Part B, take the 20-question midpoint test.</li><li>After Part D, take the 30-question final test.</li><li>Every quiz and test result is emailed to your manager automatically.</li></ol>" +
-      '<div class="rule"><strong>Your progress stays in this browser</strong><p>Use the same browser and device each time. Clearing your browser data, or using a private window, starts you over.</p></div>' +
+      '<ol class="steps"><li>Read the module and do the hands-on tasks with your trainer.</li><li>Take the quiz at the end. Pass mark is ' + CONFIG.passMark + "%. You can retake it.</li><li>After Part B, take the 20-question midpoint test.</li><li>After Part D, take the 30-question final test.</li><li>Every quiz and test result is " + (ONLINE ? "saved to your record and sent to your manager" : "emailed to your manager") + " automatically.</li></ol>" +
+      (ONLINE ? '<div class="rule"><strong>Use the same email everywhere</strong><p>Your progress is saved to your account. Sign in with the same email on any computer or phone and you pick up where you left off.</p></div>'
+              : '<div class="rule"><strong>Your progress stays in this browser</strong><p>Use the same browser and device each time. Clearing your browser data, or using a private window, starts you over.</p></div>') +
       '<div class="rule"><strong>When the manual and the website disagree</strong><p>Follow the manual. It reflects what the team has confirmed internally, such as quoting custom orders at 3–4 months.</p></div>';
   };
 
   PAGES.me = function () {
-    return '<p class="eyebrow">Your details</p><h1>Who is taking this course?</h1><p class="lead">Your name and showroom are added to every result sent to your manager. They are saved only in this browser.</p>' + profileForm("");
+    if (ONLINE && !store.auth) return '<p class="eyebrow">Your details</p><h1>Sign in</h1>' + signInBox();
+    return '<p class="eyebrow">Your details</p><h1>Who is taking this course?</h1><p class="lead">Your name and showroom are added to every result sent to your manager.' + (ONLINE ? "" : " They are saved only in this browser.") + "</p>" +
+      (ONLINE ? '<p class="who">Signed in as <b>' + esc(store.auth.email) + "</b></p>" : "") + profileForm("") +
+      (ONLINE ? '<h2>Sign out</h2><p>Signing out removes your progress from this device. It stays saved in your account; sign in again with the same email to get it back.</p><p><button class="btn btn-ghost" id="signOut">Sign out</button></p>' : "");
   };
 
   PAGES.grades = function () {
     var rows = SEQ.map(function (it) {
       var r = store.results[it.id];
       return "<tr" + (it.kind === "test" ? ' class="trow"' : "") + '><td><a href="#' + it.id + '">' + esc(label(it)) + "</a></td>" +
-        (r ? '<td class="num">' + r.score + "/" + r.total + '</td><td class="num">' + r.pct + '%</td><td><span class="gpill ' + (r.pass ? "good" : "bad") + '">' + r.grade + "</span></td><td>" + (r.pass ? "Passed" : "Not passed") + '</td><td class="num">' + fmtDate(r.date) + "</td><td>" + (r.sent ? "Sent" : (emailReady() ? "Waiting" : "Off")) + "</td>"
+        (r ? '<td class="num">' + r.score + "/" + r.total + '</td><td class="num">' + r.pct + '%</td><td><span class="gpill ' + (r.pass ? "good" : "bad") + '">' + r.grade + "</span></td><td>" + (r.pass ? "Passed" : "Not passed") + '</td><td class="num">' + fmtDate(r.date) + "</td><td>" + (r.sent ? (ONLINE ? "Saved" : "Sent") : (ONLINE || emailReady() ? "Waiting" : "Off")) + "</td>"
            : '<td class="num muted-c">—</td><td class="num muted-c">—</td><td class="muted-c">—</td><td class="muted-c">' + (it.kind === "test" && CONFIG.lockTests && missing(it).length ? "Locked" : "Not started") + '</td><td class="muted-c">—</td><td class="muted-c">—</td>') + "</tr>";
     }).join("");
     var mods = MODULES.filter(function (m) { return store.results[m.id]; });
@@ -706,13 +796,13 @@ img { max-width: 100%; }
       ["Final test", store.results.final ? store.results.final.pct + "% · " + store.results.final.grade : "—"]
     ].map(function (t) { return '<div class="tile"><span>' + t[0] + "</span><b>" + t[1] + "</b></div>"; }).join("");
     return '<p class="eyebrow">Report card</p><h1>My grades</h1>' +
-      (store.profile ? '<p class="lead">' + esc(store.profile.name) + (store.profile.showroom ? " · " + esc(store.profile.showroom) : "") + ' · <a href="#me">edit details</a></p>' : '<p class="lead">Add your details on the <a href="#home">Start page</a> to take quizzes.</p>') +
+      (ready() ? '<p class="lead">' + esc(store.profile.name) + (store.profile.showroom ? " · " + esc(store.profile.showroom) : "") + ' · <a href="#me">edit details</a></p>' : '<p class="lead">Add your details on the <a href="#home">Start page</a> to take quizzes.</p>') +
       '<div class="tiles">' + tiles + "</div>" +
-      '<div class="tablewrap"><table class="gtable"><thead><tr><th>Item</th><th>Score</th><th>%</th><th>Grade</th><th>Status</th><th>Date</th><th>Email</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+      '<div class="tablewrap"><table class="gtable"><thead><tr><th>Item</th><th>Score</th><th>%</th><th>Grade</th><th>Status</th><th>Date</th><th>' + (ONLINE ? "Record" : "Email") + '</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
       '<p class="muted-s">Grades: A 90%+ · B 80%+ · C 70%+ · D 60%+ · F below 60%. Pass mark ' + CONFIG.passMark + "%.</p>" +
-      (!emailReady() ? '<div class="rule"><strong>Results email is off</strong><p>The person who set up this site has not entered a results email address yet. Your grades are still saved here.</p></div>' : "") +
+      (!ONLINE && !emailReady() ? '<div class="rule"><strong>Results email is off</strong><p>The person who set up this site has not entered a results email address yet. Your grades are still saved here.</p></div>' : "") +
       (store.outbox.length ? '<p><button class="btn btn-primary" id="flush">Send ' + store.outbox.length + " unsent result" + (store.outbox.length > 1 ? "s" : "") + "</button></p>" : "") +
-      '<h2>Start over</h2><p>Clears every grade, checkbox and your details from this browser. Results already emailed are not affected.</p><p><button class="btn btn-ghost" id="resetBtn">Reset my progress</button> <button class="btn btn-danger" id="resetYes" hidden>Yes, erase everything</button></p>';
+      (ONLINE ? "" : '<h2>Start over</h2><p>Clears every grade, checkbox and your details from this browser. Results already emailed are not affected.</p><p><button class="btn btn-ghost" id="resetBtn">Reset my progress</button> <button class="btn btn-danger" id="resetYes" hidden>Yes, erase everything</button></p>');
   };
 
   PAGES.m1 = function () {
@@ -867,11 +957,10 @@ img { max-width: 100%; }
 
   PAGES.m2 = function () {
     return `<p class="eyebrow">Part A · Module 2</p><h1>Door basics and terminology</h1>
-      <div class="meta"><span><b>Time</b> about 40 min</span><span><b>Ends with</b> 8-question quiz</span></div>
-      <p class="lead">The words you will hear every day: the parts of a door, what comes in the box, how doors open, which way they swing, how sizes work, and the hardware names.</p>
+      <div class="meta"><span><b>Time</b> about 40 min</span><span><b>Ends with</b> 9-question quiz</span></div>
+      <p class="lead">The words you will hear every day: the parts of a door, how doors open, which way they swing, how sizes work, and the hardware names.</p>
       <div class="goals"><h3>By the end you can</h3><ul>
         <li>Point to the slab, jamb, casing, hinges and striker on any door.</li>
-        <li>Tell a customer what comes in the set for each door configuration.</li>
         <li>Name every opening type we sell and where each one is used.</li>
         <li>Describe a door's swing the way United Porte writes it.</li>
         <li>Work out the rough opening for any door from its size.</li>
@@ -918,23 +1007,9 @@ img { max-width: 100%; }
         <tr><td>Threshold</td><td>The strip at the bottom of an exterior door frame that seals against weather.</td></tr>
         <tr><td>Sidelite / transom</td><td>A fixed glass panel beside the door (sidelite) or above it (transom).</td></tr>
         <tr><td>Astragal</td><td>The strip that covers the gap where the two leaves of a double door meet. It comes in the frame packaging.</td></tr>
-        <tr><td>Flush bolt</td><td>A bolt in the edge of the inactive leaf of a double door that holds it shut at the top and floor.</td></tr>
+        <tr><td>Flush bolt</td><td>A bolt in the edge of the inactive leaf of a double door that holds it shut at the top and floor. The leaf without flush bolts is the active leaf.</td></tr>
       </tbody></table></div>
 
-      <h2>What comes in the box</h2>
-      <p>Each door configuration has its own standard set. The product page lists it under <b>What's included in price?</b> Check it there before you promise a part.</p>
-      <div class="tablewrap"><table><thead><tr><th>Configuration</th><th>Standard set</th></tr></thead><tbody>
-        <tr><td>Interior single swing</td><td>Slab, jamb, trims, hinges and a passage handle.</td></tr>
-        <tr><td>Pocket</td><td>Slab, trims, pocket hardware, track, hangers and pulls.</td></tr>
-        <tr><td>Barn</td><td>Slab, rail, wall brackets and spacers, hangers, door stops, floor guide, anti-jump pins and screws. On some models the handle is extra.</td></tr>
-        <tr><td>Double, bypass, bi-fold, hidden, pivot and exterior</td><td>Each has its own set. Read <b>What's included in price?</b> on that product page.</td></tr>
-      </tbody></table></div>
-      <div class="rule"><strong>Rule</strong><p>Every door ships undrilled. Holes and cut-outs for handles, locks, hinges or stoppers are made only when the customer pays for them, for example the $50 pre-cut on a single door or $100 on a double. If the customer does not pay for it, the installer cuts on site.</p></div>
-      <div class="tablewrap"><table><thead><tr><th>How it arrives</th><th>What the customer gets</th></tr></thead><tbody>
-        <tr><td>Set in boxes</td><td>The parts of the set in separate boxes. The installer assembles the frame and hangs the door.</td></tr>
-        <tr><td>Assembled ($99)</td><td>The slab is attached to the frame at the factory and packed together. Installation is faster. The striker hole is not included.</td></tr>
-        <tr><td>Slab only</td><td>Just the door panel, for customers who already have a frame.</td></tr>
-      </tbody></table></div>
       ${fact("orange", "A 36 x 96 interior door weighs about 75 lbs. An aluminium entry door with its frame weighs about 200 lbs, so always plan two people to move one.")}
 
       <h2>How doors open</h2>
@@ -962,15 +1037,22 @@ img { max-width: 100%; }
         <figure>${plan("R", "out")}<figcaption><b>Right outswing</b>Hinges right, opens toward you</figcaption></figure>
       </div>
       <p style="font-size:14px;color:var(--muted)">Top view. You are standing on the outside, at the bottom of each drawing. The black dot is the hinge.</p>
-      <div class="rule"><strong>Double doors: the active leaf</strong><p>The active leaf is the one with the lock, and it is judged from <b>inside</b> the building, not outside. Confirm it in writing on every double door. A mix-up here once meant replacing three patio door sets.</p></div>
+      <div class="rule"><strong>Double doors: the active leaf</strong><p>The active leaf is the one <b>without</b> the flush bolts; it is the one you open first. Describe regular double doors the same way as single doors, from outside. <b>Patio doors are the exception:</b> their active leaf is judged from <b>inside</b> the building. Confirm it in writing on every patio door. A mix-up here once meant replacing three patio door sets.</p></div>
       ${fact("green", "Walk through a right inswing door and look back: from the other side it is a left outswing. Same door, same hinges. Always ask which side the customer is describing it from.")}
 
       <h2>Sizes</h2>
-      <h3>Widths, heights and thickness</h3>
+      <h3>Sizes we offer</h3>
+      <p>These are the sizes in the website size grid. A few models offer fewer sizes, and any other size is a custom order.</p>
+      <div class="tablewrap"><table><thead><tr><th>Door</th><th>Widths (in.)</th><th>Heights (in.)</th></tr></thead><tbody>
+        <tr><td>Single swing, pocket, barn, hidden</td><td class="num">18, 24, 28, 30, 32, 36, 42</td><td class="num">80, 84, 96</td></tr>
+        <tr><td>Double swing, double pocket, double barn, barn bypass, bypass, bi-fold</td><td class="num">36, 48, 56, 60, 64, 72, 84</td><td class="num">80, 84, 96</td></tr>
+        <tr><td>Double bi-fold</td><td class="num">72, 96</td><td class="num">80, 84, 96</td></tr>
+        <tr><td>Interior pivot</td><td class="num">30, 32, 36, 42</td><td class="num">80, 84, 96, 108</td></tr>
+        <tr><td>Exterior single</td><td class="num">32, 36 (30 on some models)</td><td class="num">80; 96 on some models</td></tr>
+      </tbody></table></div>
+      <div class="rule"><strong>Exterior heights</strong><p>Exterior doors are 80 in., and 96 in. on some models. Taller openings, such as 108, 110 and 112 in., are made by adding a transom above the door, not with a taller door.</p></div>
+      <h3>Thickness</h3>
       <ul class="plain">
-        <li>Interior widths: 18 to 42 in.</li>
-        <li>Interior heights: 80, 84 and 96 in. Hidden doors also come in 108 in.</li>
-        <li>Exterior heights: 80, 96, 108, 110 and 112 in.</li>
         <li>Interior door thickness: 1 9/16 in. (40 mm). Frameless doors are 42 mm. We do not make 1 3/4 in. or 2 in. thick doors.</li>
         <li>Interior frame depth: 4 9/16 in.</li>
       </ul>
@@ -1030,17 +1112,16 @@ img { max-width: 100%; }
         <tr><td><code>CYL</code> / <code>WC</code></td><td>The part under the handle. <code>CYL</code> is a key cylinder (entry). <code>WC</code> is a turnknob (privacy).</td></tr>
         <tr><td>Butterfly hinge</td><td>A visible hinge mounted on the surface. Included with a standard set.</td></tr>
         <tr><td>Concealed hinge</td><td>Hidden inside the door and frame when closed. An upgrade.</td></tr>
-        <tr><td>Mortise</td><td>The cut-out in the door edge where the lock or latch sits.</td></tr>
+        <tr><td>Mortise</td><td>The cut-out in the door edge where the lock or latch sits. Doors ship undrilled; this cut is made only when the customer pays for it.</td></tr>
         <tr><td>Canopy</td><td>A roof or overhang above an exterior door. Required to keep the exterior door warranty.</td></tr>
       </tbody></table></div>
 
       <h2>Hands-on tasks</h2>
       ${tasks("m2", [
         "In the showroom, point to the slab, jamb, casing, hinges and striker on a display door.",
-        "Open a swing, a pocket and a barn door on the website and read What's included in price? on each.",
+        "Open the size grid on one interior product page and switch between the 80, 84 and 96 in. heights.",
         "Work out the rough opening for a 30 x 80 in. swing door and a 30 x 80 in. pocket door, then check both against the product pages.",
-        "On the website, open one interior door and find the swing option and the Recommended opening.",
-        "Find the factory sticker on a door and read the model, size and thickness."
+        "On the website, open one interior door and find the swing option and the Recommended opening."
       ])}
 
       <h2>Quiz</h2><p>Pick an answer to see why it is right or wrong.</p>
@@ -1048,7 +1129,8 @@ img { max-width: 100%; }
         { q: "Which part is fixed in the wall opening and holds the hinges?", o: ["Casing", "Jamb", "Slab", "Threshold"], a: 1, why: "The jamb is the frame in the opening. The casing is the decorative trim around it." },
         { q: "What rough opening does a 30 x 80 in. single swing door need?", o: ["30 x 80 in.", "32 x 81 1/2 in.", "31 x 81 in.", "28 x 79 in."], a: 1, why: "Swing door: width + 2 in., height + 1 1/2 in. 28 x 79 would be the barn door opening." },
         { q: "Standing outside, the hinges are on the right and the door opens away from you. What is it?", o: ["Right inswing", "Left inswing", "Right outswing", "Left outswing"], a: 0, why: "Hinges on the right and opening away from you, seen from outside, is a right inswing." },
-        { q: "On a double door, which side do you judge the active leaf from?", o: ["Outside", "Inside", "Either side", "The hinge side"], a: 1, why: "The active leaf, the one with the lock, is always judged from inside the building." },
+        { q: "On a patio door, which side do you judge the active leaf from?", o: ["Outside", "Inside", "Either side", "The hinge side"], a: 1, why: "Patio doors are judged from inside. Regular double doors are described from outside, like single doors." },
+        { q: "On a double door, which leaf is the active one?", o: ["The one with the flush bolts", "The one without the flush bolts", "Always the left one", "Always the right one"], a: 1, why: "The flush bolts hold the inactive leaf shut. The active leaf has none." },
         { q: "A customer wants a bathroom door that locks from inside. Which function?", o: ["Passage", "Privacy", "Entry", "Dummy"], a: 1, why: "Privacy locks from inside with a turnknob. Entry locks with a key." },
         { q: "Does a standard door arrive with the handle and lock holes already cut?", o: ["Yes, always", "Only on exterior doors", "No. Doors ship undrilled unless the customer pays for the pre-cut", "Only on white doors"], a: 2, why: "Every door ships undrilled. Cuts are made only when the customer pays for them." },
         { q: "Under the US residential code, what clear width must the main exit door give?", o: ["28 in.", "30 in.", "32 in.", "36 in."], a: 2, why: "IRC R311.2 asks for at least 32 in. of clear width with the door open at 90°, which is why main entries are usually 36 in. doors." },
@@ -1247,7 +1329,7 @@ img { max-width: 100%; }
 
       <h2>Checklist before every order</h2>
       ${tasks("m4c", [
-        "Swing direction confirmed in writing, and the active leaf on double doors (judged from inside).",
+        "Swing direction confirmed in writing, and the active leaf on double doors (patio doors are judged from inside).",
         "Wall thickness measured. Extension added if the wall is 5 1/2 in. or more.",
         "Rough opening matches the formula and the product page.",
         "Pocket door: the wall cavity is available and you know if it is 2x4 or 2x6.",
@@ -2080,7 +2162,7 @@ img { max-width: 100%; }
     var t = ITEMS[id], qs = t.qs;
     var head = '<p class="eyebrow">' + (id === "mid" ? "After Part B" : "After Part D") + '</p><h1>' + t.t + "</h1>" +
       '<div class="meta"><span><b>Covers</b> ' + t.covers + "</span><span><b>Questions</b> " + qs.length + "</span><span><b>Pass mark</b> " + CONFIG.passMark + "%</span></div>";
-    if (!store.profile) return head + profileGate() + pager(id);
+    if (!ready()) return head + profileGate() + pager(id);
     var miss = CONFIG.lockTests ? missing(t) : [];
     if (miss.length) {
       return head + '<div class="lockbox"><b>This test opens when you finish:</b><ul>' + miss.map(function (m) { return '<li><a href="#' + m + '">' + esc(label(ITEMS[m])) + "</a></li>"; }).join("") + "</ul></div>" + pager(id);
@@ -2155,6 +2237,19 @@ img { max-width: 100%; }
       return;
     }
     if (e.target.closest(".tretake")) { renderTest.retake = true; route(); return; }
+    if (e.target.closest("#resendCode")) {
+      api("requestCode", { email: SIGN.email }).then(function (j) { if (j.ok) toast("New code sent to " + SIGN.email); else showErr(j.error); });
+      return;
+    }
+    if (e.target.closest("#changeEmail")) { SIGN.step = "email"; route(); return; }
+    if (e.target.closest("#signOut")) {
+      syncNow().then(function () {
+        store = { tasks: {}, profile: null, results: {}, outbox: [], auth: null };
+        try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (err) {}
+        location.hash = "#home"; route(); toast("Signed out.");
+      });
+      return;
+    }
     if (e.target.closest("#flush")) { flushOutbox().then(function (n) { toast(n ? n + " result(s) sent." : "Could not send yet. Check your connection."); route(); }); return; }
     if (e.target.closest("#resetBtn")) { document.getElementById("resetYes").hidden = false; return; }
     if (e.target.closest("#resetYes")) { store = { tasks: {}, profile: null, results: {}, outbox: [] }; save(); location.hash = "#home"; route(); toast("Progress erased."); return; }
@@ -2170,9 +2265,33 @@ img { max-width: 100%; }
       e.preventDefault();
       var f = e.target, el = f.elements, name = el["name"].value.trim();
       if (!name) { el["name"].focus(); return; }
-      store.profile = { name: name, email: el["email"].value.trim(), showroom: el["showroom"].value };
+      store.profile = { name: name, email: ONLINE ? store.auth.email : el["email"].value.trim(), showroom: el["showroom"].value };
       save(); flushOutbox(); toast("Saved. Welcome, " + name.split(" ")[0] + "!");
       var y = window.scrollY; route(); window.scrollTo(0, CUR === "home" ? 0 : y);
+      return;
+    }
+    if (e.target.id === "signInForm" || e.target.id === "codeForm") {
+      e.preventDefault();
+      var form = e.target, btn = form.querySelector("button[type=submit]"); btn.disabled = true;
+      if (form.id === "signInForm") {
+        SIGN.email = form.elements["email"].value.trim().toLowerCase();
+        api("requestCode", { email: SIGN.email }).then(function (j) {
+          btn.disabled = false;
+          if (j.ok || j.error === "wait") { SIGN.step = "code"; route(); toast(j.ok ? "Code sent to " + SIGN.email : ERRORS.wait); }
+          else showErr(j.error);
+        });
+      } else {
+        api("verifyCode", { email: SIGN.email, code: form.elements["code"].value }).then(function (j) {
+          btn.disabled = false;
+          if (!j.ok) { showErr(j.error); return; }
+          store.auth = { email: j.email, token: j.token };
+          merge(j.data);
+          if (store.profile) store.profile.email = j.email;
+          SIGN = { step: "email", email: "" };
+          save(); flushOutbox(); route();
+          toast(store.profile && store.profile.name ? "Welcome back, " + store.profile.name.split(" ")[0] + "!" : "Signed in. Add your name to finish.");
+        });
+      }
       return;
     }
     if (e.target.id === "testForm") {
@@ -2204,7 +2323,12 @@ img { max-width: 100%; }
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") document.body.classList.remove("nav-open"); });
   window.addEventListener("hashchange", route);
   route();
-  flushOutbox();
+  if (ONLINE && store.auth) {
+    api("load", { token: store.auth.token }).then(function (j) {
+      if (j.ok) { merge(j.data); save(); route(); flushOutbox(); }
+      else if (j.error === "signed_out") signedOut();
+    });
+  } else flushOutbox();
 })();
 
 </script>
