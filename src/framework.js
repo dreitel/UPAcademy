@@ -98,8 +98,63 @@
     if (data.profile && data.profile.name) store.profile = data.profile;
   }
   function signedOut() {
+    var em = store.auth && store.auth.email;
+    ACC.list.forEach(function (a) { if (a.email === em) a.token = null; }); saveAcc();
     store.auth = null; try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {}
-    toast("Please sign in again."); route();
+    SIGN = { step: "email", email: em || "", fresh: true };
+    toast("Please sign in again with a new code."); route();
+  }
+
+  /* ---------- Trainees who have used this computer (online mode) ---------- */
+  var ACC_KEY = "upa-accounts", IDLE_MIN = 30;
+  var ACC = { list: [], last: 0 };
+  try { var ra = localStorage.getItem(ACC_KEY); if (ra) ACC = Object.assign(ACC, JSON.parse(ra)); } catch (e) {}
+  function saveAcc() { try { localStorage.setItem(ACC_KEY, JSON.stringify(ACC)); } catch (e) {} }
+  function account(email) { return ACC.list.filter(function (a) { return a.email === email; })[0]; }
+  function remember(email, token, profile) {
+    var a = account(email);
+    if (!a) { a = { email: email }; ACC.list.push(a); }
+    if (token) a.token = token;
+    if (profile && profile.name) { a.name = profile.name; a.showroom = profile.showroom || ""; }
+    a.used = Date.now(); saveAcc();
+  }
+  function emptyStore() { return { tasks: {}, profile: null, results: {}, outbox: [], auth: null }; }
+  function touch() { ACC.last = Date.now(); saveAcc(); }
+  function leave() {
+    if (store.auth) {
+      clearTimeout(syncTimer); syncNow();
+      try { localStorage.setItem("upa-u:" + store.auth.email, JSON.stringify(store)); } catch (e) {}
+    }
+    store = emptyStore(); SIGN = { step: "email", email: "" };
+    try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {}
+  }
+  function switchTo(email) {
+    var a = account(email); if (!a) return;
+    leave();
+    if (!a.token) { SIGN = { step: "email", email: a.email, fresh: true }; route(); return; }
+    var saved = null; try { saved = JSON.parse(localStorage.getItem("upa-u:" + email)); } catch (e) {}
+    store = Object.assign(emptyStore(), saved || {});
+    store.auth = { email: a.email, token: a.token };
+    if (!store.profile && a.name) store.profile = { name: a.name, email: a.email, showroom: a.showroom || "" };
+    a.used = Date.now(); touch(); save(); route();
+    toast("Welcome back, " + (a.name || a.email).split(" ")[0] + "!");
+    api("load", { token: a.token }).then(function (j) {
+      if (!store.auth || store.auth.email !== email) return;
+      if (j.ok) { merge(j.data); save(); route(); flushOutbox(); }
+      else if (j.error === "signed_out") signedOut();
+    });
+  }
+  function initials(n) { return String(n || "?").split(/\s+/).map(function (w) { return w.charAt(0); }).join("").slice(0, 2).toUpperCase(); }
+  function whoBox(intro) {
+    var people = ACC.list.slice().sort(function (a, b) { return (b.used || 0) - (a.used || 0); });
+    if (!people.length || SIGN.step === "code" || SIGN.fresh) {
+      return signInBox(intro) + (people.length ? '<p><button class="btn btn-ghost" type="button" id="backToList">Back to the list of names</button></p>' : "");
+    }
+    return '<div class="profile whobox"><p><b>Who\'s training?</b> Tap your name to continue.</p><div class="people">' +
+      people.map(function (p) {
+        return '<button class="person" type="button" data-email="' + esc(p.email) + '"><span class="av">' + esc(initials(p.name || p.email)) + "</span><span><b>" + esc(p.name || p.email) + "</b><small>" + esc(p.showroom || p.email) + "</small></span></button>";
+      }).join("") +
+      '</div><button class="btn btn-ghost" type="button" id="newPerson">Someone new? Sign in with email</button></div>';
   }
   function ready() { return ONLINE ? !!(store.auth && store.profile && store.profile.name) : !!store.profile; }
   var SIGN = { step: "email", email: "" };
@@ -248,11 +303,11 @@
       '<button class="btn btn-primary" type="submit">' + (store.profile ? "Save changes" : "Save and continue") + "</button></form>";
   }
   function profileGate() {
-    if (ONLINE && !store.auth) return '<div class="gate">' + signInBox("Sign in before you take the quiz, so your grade is saved to your record.") + "</div>";
+    if (ONLINE && !store.auth) return '<div class="gate">' + whoBox("Sign in before you take the quiz, so your grade is saved to your record.") + "</div>";
     return '<div class="gate">' + profileForm("Enter your name before you take the quiz, so your grade can be recorded and sent to your manager.") + "</div>";
   }
   function startBox() {
-    if (ONLINE && !store.auth) return signInBox();
+    if (ONLINE && !store.auth) return whoBox();
     return profileForm(ONLINE ? "Welcome! Tell us your name and showroom. They are added to your record." : "Start by entering your name. It is saved in this browser and added to every result you send.");
   }
 
@@ -326,6 +381,7 @@
     document.getElementById("navParts").innerHTML = html;
     document.querySelectorAll(".toplinks a").forEach(function (a) { if (a.getAttribute("data-id") === current) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
     document.getElementById("progMini").textContent = (store.profile ? store.profile.name + " · " : "") + modulesDone() + " of " + MODULES.length + " modules";
+    document.getElementById("switchBtn").hidden = !(ONLINE && store.auth);
   }
 
   /* ---------- Pages ---------- */
@@ -353,16 +409,17 @@
       '<div class="phases">' + cards + "</div>" +
       "<h2>How it works</h2>" +
       '<ol class="steps"><li>Read the module and do the hands-on tasks with your trainer.</li><li>Take the quiz at the end. Pass mark is ' + CONFIG.passMark + "%. You can retake it.</li><li>After Part B, take the 20-question midpoint test.</li><li>After Part D, take the 30-question final test.</li><li>Every quiz and test result is " + (ONLINE ? "saved to your record and sent to your manager" : "emailed to your manager") + " automatically.</li></ol>" +
-      (ONLINE ? '<div class="rule"><strong>Use the same email everywhere</strong><p>Your progress is saved to your account. Sign in with the same email on any computer or phone and you pick up where you left off.</p></div>'
+      (ONLINE ? '<div class="rule"><strong>Use the same email everywhere</strong><p>Your progress is saved to your account. Sign in with the same email on any computer or phone and you pick up where you left off. On a shared computer, tap <b>Switch trainee</b> at the top when you finish. The site also switches back to the list of names after ' + IDLE_MIN + ' minutes without activity.</p></div>'
               : '<div class="rule"><strong>Your progress stays in this browser</strong><p>Use the same browser and device each time. Clearing your browser data, or using a private window, starts you over.</p></div>') +
       '<div class="rule"><strong>When the manual and the website disagree</strong><p>Follow the manual. It reflects what the team has confirmed internally, such as quoting custom orders at 3–4 months.</p></div>';
   };
 
   PAGES.me = function () {
-    if (ONLINE && !store.auth) return '<p class="eyebrow">Your details</p><h1>Sign in</h1>' + signInBox();
+    if (ONLINE && !store.auth) return '<p class="eyebrow">Your details</p><h1>Who\'s training?</h1>' + whoBox();
     return '<p class="eyebrow">Your details</p><h1>Who is taking this course?</h1><p class="lead">Your name and showroom are added to every result sent to your manager.' + (ONLINE ? "" : " They are saved only in this browser.") + "</p>" +
       (ONLINE ? '<p class="who">Signed in as <b>' + esc(store.auth.email) + "</b></p>" : "") + profileForm("") +
-      (ONLINE ? '<h2>Sign out</h2><p>Signing out removes your progress from this device. It stays saved in your account; sign in again with the same email to get it back.</p><p><button class="btn btn-ghost" id="signOut">Sign out</button></p>' : "");
+      (ONLINE ? '<h2>Shared computer</h2><p><b>Switch trainee</b> goes back to the list of names. Your progress stays saved to your account.</p><p><button class="btn btn-ghost" id="signOut">Switch trainee</button></p>' +
+        '<p>Not coming back to this computer? Remove your name from its list. You can still sign in here later with a new code.</p><p><button class="btn btn-ghost" id="forgetMe">Remove me from this computer</button></p>' : "");
   };
 
   PAGES.grades = function () {
@@ -477,12 +534,20 @@
       return;
     }
     if (e.target.closest("#changeEmail")) { SIGN.step = "email"; route(); return; }
-    if (e.target.closest("#signOut")) {
-      syncNow().then(function () {
-        store = { tasks: {}, profile: null, results: {}, outbox: [], auth: null };
-        try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (err) {}
-        location.hash = "#home"; route(); toast("Signed out.");
-      });
+    var person = e.target.closest(".person");
+    if (person) { switchTo(person.dataset.email); return; }
+    if (e.target.closest("#newPerson")) { SIGN = { step: "email", email: "", fresh: true }; route(); var f = document.getElementById("si-email"); if (f) f.focus(); return; }
+    if (e.target.closest("#backToList")) { SIGN = { step: "email", email: "" }; route(); return; }
+    if (e.target.closest("#signOut") || e.target.closest("#switchBtn")) {
+      leave(); location.hash = "#home"; route(); toast("Switched. Pick your name or sign in.");
+      return;
+    }
+    if (e.target.closest("#forgetMe")) {
+      var gone = store.auth && store.auth.email;
+      leave();
+      ACC.list = ACC.list.filter(function (a) { return a.email !== gone; }); saveAcc();
+      try { localStorage.removeItem("upa-u:" + gone); } catch (err) {}
+      location.hash = "#home"; route(); toast("Removed from this computer.");
       return;
     }
     if (e.target.closest("#flush")) { flushOutbox().then(function (n) { toast(n ? n + " result(s) sent." : "Could not send yet. Check your connection."); route(); }); return; }
@@ -501,6 +566,7 @@
       var f = e.target, el = f.elements, name = el["name"].value.trim();
       if (!name) { el["name"].focus(); return; }
       store.profile = { name: name, email: ONLINE ? store.auth.email : el["email"].value.trim(), showroom: el["showroom"].value };
+      if (ONLINE && store.auth) remember(store.auth.email, null, store.profile);
       save(); flushOutbox(); toast("Saved. Welcome, " + name.split(" ")[0] + "!");
       var y = window.scrollY; route(); window.scrollTo(0, CUR === "home" ? 0 : y);
       return;
@@ -519,9 +585,13 @@
         api("verifyCode", { email: SIGN.email, code: form.elements["code"].value }).then(function (j) {
           btn.disabled = false;
           if (!j.ok) { showErr(j.error); return; }
+          leave();
+          var saved = null; try { saved = JSON.parse(localStorage.getItem("upa-u:" + j.email)); } catch (err) {}
+          store = Object.assign(emptyStore(), saved || {});
           store.auth = { email: j.email, token: j.token };
           merge(j.data);
           if (store.profile) store.profile.email = j.email;
+          remember(j.email, j.token, store.profile); touch();
           SIGN = { step: "email", email: "" };
           save(); flushOutbox(); route();
           toast(store.profile && store.profile.name ? "Welcome back, " + store.profile.name.split(" ")[0] + "!" : "Signed in. Add your name to finish.");
@@ -557,6 +627,17 @@
   document.getElementById("scrim").addEventListener("click", function () { document.body.classList.remove("nav-open"); document.getElementById("menuBtn").setAttribute("aria-expanded", "false"); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") document.body.classList.remove("nav-open"); });
   window.addEventListener("hashchange", route);
+  if (ONLINE) {
+    if (store.auth && !account(store.auth.email)) { remember(store.auth.email, store.auth.token, store.profile); touch(); }
+    if (store.auth && Date.now() - (ACC.last || 0) > IDLE_MIN * 60000) leave();
+    var lastTouch = 0;
+    ["click", "keydown", "scroll", "touchstart"].forEach(function (ev) {
+      document.addEventListener(ev, function () { var n = Date.now(); if (store.auth && n - lastTouch > 20000) { lastTouch = n; touch(); } }, { passive: true });
+    });
+    setInterval(function () {
+      if (store.auth && Date.now() - (ACC.last || 0) > IDLE_MIN * 60000) { leave(); location.hash = "#home"; route(); toast("Switched back to the list of names after " + IDLE_MIN + " minutes without activity."); }
+    }, 60000);
+  }
   route();
   if (ONLINE && store.auth) {
     api("load", { token: store.auth.token }).then(function (j) {

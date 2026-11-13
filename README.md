@@ -34,6 +34,10 @@ Training course for new United Porte team members: 14 modules, graded quizzes, a
 
 Free Google accounts can send about 100 emails a day. That covers sign-in codes and result emails for a small team.
 
+## Shared computers
+
+Each person needs an email code only the first time they use a computer or browser. After that, the start page shows **Who's training?** with everyone who has used that computer; they tap their name to continue. **Switch trainee** at the top goes back to the list. The site also goes back to the list on its own after 30 minutes with no activity. Grades always save to each person's own record.
+
 ## Turn on the website (one time)
 
 Go to repository **Settings → Pages** → **Deploy from a branch** → **main** / **(root)** → **Save**. The site appears at `https://dreitel.github.io/UPAcademy/` within a couple of minutes.

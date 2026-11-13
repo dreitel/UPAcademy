@@ -36,6 +36,15 @@ img { max-width: 100%; }
 .profile input, .profile select { font: 15px var(--font-body); color: var(--ink); background: var(--ground); border: 1px solid var(--line); border-radius: 8px; height: 42px; padding: 0 10px; width: 100%; }
 .gate .profile { border-color: var(--orange); }
 .signin .row { display: flex; flex-wrap: wrap; gap: 10px; }
+.switch-btn { font: 600 13px var(--font-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; height: 36px; padding: 0 12px; cursor: pointer; white-space: nowrap; }
+.switch-btn:hover { border-color: var(--orange); }
+.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin: 6px 0 16px; }
+.person { display: flex; align-items: center; gap: 12px; text-align: left; background: var(--ground); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; color: var(--ink); font: 15px var(--font-body); min-width: 0; }
+.person:hover { border-color: var(--orange); background: var(--orange-wash); }
+.person > span:last-child { min-width: 0; }
+.person b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person small { display: block; color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person .av { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--orange); color: #1b1006; font: 700 13px var(--font-display); }
 .formerr { color: var(--bad); font-weight: 600; margin: 0 0 12px; }
 .signin input[name=code] { letter-spacing: .3em; font-family: var(--font-mono); font-size: 20px; max-width: 220px; }
 
@@ -93,6 +102,7 @@ body = f'''<header class="bar">
   </a>
   <span class="spacer"></span>
   <span class="progress-mini" id="progMini"></span>
+  <button class="switch-btn" id="switchBtn" type="button" hidden>Switch trainee</button>
 </header>
 
 <div class="shell">
