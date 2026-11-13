@@ -11,7 +11,7 @@
      lockTests:    true = midpoint/final open only after the modules before them
      ===================================================================== */
   var CONFIG = {
-    apiUrl: "",
+    apiUrl: "https://script.google.com/macros/s/AKfycbx3Dm5lvWwu7vAA0uVuLm4F-kgIJhM4042vGmxbRFn1mRcK9aimN_eCiXt1yWBLlPaT/exec",
     resultsEmail: "YOUR-EMAIL@example.com",
     passMark: 80,
     lockTests: true
