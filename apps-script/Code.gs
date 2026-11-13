@@ -4,7 +4,7 @@
  * (Execute as: Me · Who has access: Anyone). Copy the web app URL into index.html (CONFIG.apiUrl).
  */
 var SETTINGS = {
-  NOTIFY_EMAIL: '',        // every quiz/test result is emailed here. Leave '' for no result emails.
+  NOTIFY_EMAIL: 'andrew@unitedporte.us', // every quiz/test result is emailed here. Leave '' for no result emails.
   ALLOWED_DOMAIN: '',      // e.g. 'unitedporte.us' to allow only company emails. '' = any email.
   CODE_MINUTES: 15,        // how long a sign-in code works
   SESSION_DAYS: 365        // how long a device stays signed in
